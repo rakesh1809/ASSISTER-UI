@@ -1,0 +1,43 @@
+<ivysettings>
+    <settings defaultResolver="nexus" defaultBranch="" latest="latest-compatible" />
+    <credentials host="hiosdev.sbd2.com" realm="Repository Archiva Managed releases Repository" username="build" passwd="build456789" />
+    <credentials host="hiosdev.sbd2.com" realm="Repository Archiva Managed integration-releases Repository" username="build" passwd="build456789" />
+    <credentials host="hiosdev.sbd2.com" realm="Repository Archiva Managed thirdparty Repository" username="build" passwd="build456789" />
+    <property name="nexus-public" value="http://hiosdev.sbd2.com/archiva/repository/public/"/>
+    <property name="nexus-releases" value="http://hiosdev.sbd2.com/archiva/repository/releases/"/>
+    <property name="nexus-integration-releases" value="http://hiosdev.sbd2.com/archiva/repository/integration-releases/"/>
+    <property name="nexus-snapshots" value="http://hiosdev.sbd2.com/archiva/repository/snapshots/"/>
+    <property name="buildnum-releases" value="http://hiosdev.sbd2.com/archiva/repository/releases/"/>
+    <property name="buildnum-integration-releases" value="http://hiosdev.sbd2.com/archiva/repository/integration-releases/"/>
+    <resolvers>
+        <ibiblio name="nexus" m2compatible="true" useMavenMetadata="false" root="${nexus-public}" />
+        <filesystem name="snapshot-local" checkmodified="true">
+            <ivy pattern="${basedir}/../repo/[branch]/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]" />
+            <artifact pattern="${basedir}/../repo/[branch]/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]" />
+        </filesystem>
+        <ibiblio name="nexus-releases" m2compatible="true" root="${nexus-releases}"  />
+        <ibiblio name="nexus-integration-releases" m2compatible="true" useMavenMetadata="false" root="${nexus-integration-releases}"  pattern="[branch]/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]" />
+        <ibiblio name="buildnum-releases" m2compatible="true" useMavenMetadata="false" root="${buildnum-releases}"  />
+        <ibiblio name="buildnum-integration-releases" m2compatible="true" useMavenMetadata="false" root="${buildnum-integration-releases}" pattern="[branch]/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]" />
+        <filesystem name="buildnum-snapshots" checkmodified="true">
+            <ivy pattern="${basedir}/../repo/[branch]/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]" />
+            <artifact pattern="${basedir}/../repo/[branch]/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]" />
+        </filesystem>
+        <chain name="nexus-chain">
+            <filesystem name="snapshot-local" checkmodified="true">
+                <ivy pattern="${basedir}/../repo/[branch]/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]" />
+                <artifact pattern="${basedir}/../repo/[branch]/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]" />
+            </filesystem>
+            <ivyrep name="nexus-chain-integration-releases" ivypattern="" ivyroot="${nexus-integration-releases}" />
+            <ivyrep name="nexus-chain-release" ivyroot="${nexus-releases}"/>
+            <url name="chain2-releases" m2compatible="true" >
+                <ivy pattern="${nexus-releases}/[branch]/[organisation]/[module]/[revision]/ivy-[revision].xml" />
+                <artifact pattern="${nexus-releases}/[branch]/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]" />
+            </url>
+            <url name="chain2-integration-releases" m2compatible="true" >
+                <ivy pattern="${nexus-integration-releases}/[branch]/[organisation]/[module]/[revision]/ivy-[revision].xml" />
+                <artifact pattern="${nexus-integration-releases}/[branch]/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]" />
+            </url>
+        </chain>
+    </resolvers>
+</ivysettings>

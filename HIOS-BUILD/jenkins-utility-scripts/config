@@ -1,0 +1,9 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+[svn-remote "svn"]
+	url = https://calt.cms.gov/svn/repos/svnhios
+	fetch = DATA-CORE/branches/INTEGRATION/*:refs/remotes/*
+	

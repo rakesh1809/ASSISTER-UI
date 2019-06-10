@@ -1,0 +1,12 @@
+<ivysettings>
+  <settings defaultResolver="nexus" defaultBranch="" latest="latest-compatible" />
+    <credentials host="hiosdev.sbd2.com" realm="Repository Archiva Managed releases Repository" username="build" passwd="build456789" />
+    <credentials host="hiosdev.sbd2.com" realm="Repository Archiva Managed integration-releases Repository" username="build" passwd="build456789" />
+    <credentials host="hiosdev.sbd2.com" realm="Repository Archiva Managed thirdparty Repository" username="build" passwd="build456789" />
+    <property name="nexus-public" value="http://hiosdev.sbd2.com/archiva/repository/public/"/>
+    <property name="nexus-releases" value="http://hiosdev.sbd2.com/archiva/repository/releases/"/>
+    <property name="nexus-integration-releases" value="http://hiosdev.sbd2.com/archiva/repository/integration-releases/"/>
+    <property name="nexus-snapshots" value="http://hiosdev.sbd2.com/archiva/repository/snapshots/"/>
+    <property name="buildnum-releases" value="http://hiosdev.sbd2.com/archiva/repository/releases/"/>
+    <property name="buildnum-integration-releases" value="http://hiosdev.sbd2.com/archiva/repository/integration-releases/"/>
+</ivysettings>

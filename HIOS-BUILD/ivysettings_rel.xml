@@ -1,0 +1,70 @@
+<ivysettings>
+  <settings defaultResolver="nexus" defaultBranch="" latest="latest-compatible" />
+    <credentials host="nexus" realm="Repository Archiva Managed releases Repository" username="build" passwd="build456789" />
+    <credentials host="nexus" realm="Repository Archiva Managed integration-releases Repository" username="build" passwd="build456789" />
+    <credentials host="nexus" realm="Repository Archiva Managed thirdparty Repository" username="build" passwd="build456789" />
+    <property name="nexus-public" value="http://nexus:8080/archiva/repository/public"/>
+    <property name="nexus-releases" value="http://nexus:8080/archiva/repository/releases"/>
+    <property name="nexus-integration-releases" value="http://nexus:8080/archiva/repository/integration-releases"/>
+    <property name="nexus-snapshots" value="http://nexus:8080/nexus/content/repositories/snapshots"/>
+    <property name="buildnum-releases" value="http://nexus:8080/archiva/repository/releases"/>
+    <property name="buildnum-integration-releases" value="http://nexus:8080/archiva/repository/integration-releases"/>
+    <resolvers>
+     <ibiblio name="nexus" m2compatible="true" useMavenMetadata="false" root="${nexus-public}" />
+ 	   <url name="chain2-releases" m2compatible="true" >
+ 	   		 <ivy pattern="${nexus-releases}/[branch]/[organisation]/[module]/[revision]/ivy-[revision].xml" />
+             <artifact pattern="${nexus-releases}/[branch]/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]" />
+ 	   </url>
+    </resolvers>
+    <modules>
+      <!--<module organisation="org.cms.data" name="DATA-CORE" matcher="regexp" resolver="chain2-releases" />-->
+      <module organisation="org.cms.hios.pe.api" name="HIOS-API" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.pe.api" name="HIOS-API-DATA" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.assister" name="HIOS-ASSISTER-DATA" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.assister" name="HIOS-ASSISTER-UI" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.ccs" name="HIOS-CCS-DATA" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.ccs" name="HIOS-CCS-UI" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios" name="HIOS-COMMON" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios" name="HIOS-COMMON-UI" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.ff" name="HIOS-DCM-FF-DATA" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.ff" name="HIOS-DCM-FF-UI" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.dcm.mc" name="HIOS-DCM-MC-DATA" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.dcm.mc" name="HIOS-DCM-MC-UI" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.doc.mgmt" name="HIOS-DOC-MGMT" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.ere" name="HIOS-ERE-DATA" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.ere" name="HIOS-ERE-UI" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios" name="HIOS-ESB-BGM" matcher="regexp" resolver="chain2-releases" />
+      <!--<module organisation="org.cms.hios.main" name="HIOS-FFE-MAIN-UI" matcher="regexp" resolver="chain2-releases" />-->
+      <module organisation="org.cms.hios.global" name="HIOS-GLOBAL-DATA" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios" name="HIOS-HPOES-WS" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios" name="HIOS-HPID-WS-DATA" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.xp" name="HIOS-IMPORT-EXPORT" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.internal.ws" name="HIOS-INTERNAL-WS" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.internal.ws" name="HIOS-INTERNAL-WS-DATA" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.main" name="HIOS-MAIN-DATA" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.main" name="HIOS-MAIN-UI" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.mec" name="HIOS-MEC-DATA" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.mec" name="HIOS-MEC-UI" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.mqm" name="HIOS-MQM-DATA" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.mqm" name="HIOS-MQM-ESB-BGM" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.mqm" name="HIOS-MQM-UI" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.nonfed" name="HIOS-NONFED-DATA" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios" name="HIOS-NONFED-UI" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.pe.aob" name="HIOS-PE-DATA-COMMON" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.rbis.data" name="HIOS-RBIS-DATA" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.rbis" name="HIOS-RBIS-ESB-BGM" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.rbis.pe" name="HIOS-RBIS-PE" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.rbis.pe.data" name="HIOS-RBIS-PE-DATA" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.rbis" name="HIOS-RBIS-UI" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.doc.collection" name="HIOS-DOC-COLLECTION-DATA" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.doc.collection" name="HIOS-DOC-COLLECTION-UI" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.portal.data" name="HIOS-PORTAL-DATA" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.portal" name="HIOS-PORTAL" matcher="regexp" resolver="chain2-releases" />
+     
+      
+      <!--module organisation="org.cms.hios.scis" name="HIOSSCIS" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.scis" name="HIOSSCIS-DATA" matcher="regexp" resolver="chain2-releases" />
+      <module organisation="org.cms.hios.scis" name="HIOSSCIS-COMMON" matcher="regexp" resolver="chain2-releases" />       
+      <module organisation="org.cms.hios.scis" name="HIOSSCIS-PROXY" matcher="regexp" resolver="chain2-releases" /-->
+    </modules>
+</ivysettings>

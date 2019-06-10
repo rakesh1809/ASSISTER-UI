@@ -1,0 +1,1234 @@
+<project name="all" xmlns:ivy="antlib:org.apache.ivy.ant" basedir=".">
+	<loadproperties srcFile="build.properties" />
+	<property name="ivy.install.version" value="2.4.0" />
+	<property name="ivy.jar.dir" value="${basedir}/ivy" />
+	<property name="ivy.jar.file" value="${ivy.jar.dir}/ivy.jar" />
+	<property name="svn.url" value="https://calt.cms.gov/svn/repos/svnhios" />
+	<property name="build.home" value=".." />
+	<property environment="env" />
+	<property name="cicd.user" value="coveros" />
+	<property name="tomcat.user" value="tomcat7" />
+	<property name="jboss.user" value="jboss" />
+	<property name="ui.server.ip" value="10.200.1.17" />
+	<property name="data.server.ip" value="10.200.1.18" />
+	<property name="database.server.ip" value="10.200.1.19" />
+	<property name="jboss.dir" value="/opt/jboss-soa-p/jboss-as" />
+	<property name="jboss.bin.dir" value="${jboss.dir}/bin" />
+	
+	<tstamp/>
+
+	
+	<!--
+	================================= 
+	target: check-ivy         
+	If the ivy jar exists don't redownload. 
+	================================= 
+-->
+	<target name="check-ivy">
+		<available file="${ivy.jar.file}" property="skip.download" />
+	</target>
+
+	<!--
+	 ================================= 
+	 target: download-ivy         
+     Downloads the ivy jar and places it in the ivy directory
+     ================================= 
+-->
+	<target name="download-ivy" unless="skip.download" depends="check-ivy">
+
+		<!-- Create a location for the ivy jars -->
+		<mkdir dir="${ivy.jar.dir}" />
+
+		<!-- download Ivy from web site so that it can be used even without any special installation -->
+		<echo message="installing ivy..." />
+		<get src="https://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/ivy-${ivy.install.version}.jar" dest="${ivy.jar.file}" usetimestamp="true" />
+	</target>
+
+	<!--
+	 ================================= 
+	 target: install-ivy         
+     this target is not necessary if you put ivy.jar in your ant lib directory
+     if you already have ivy in your ant lib, you can simply remove this
+     target and the dependency the 'go' target has on it
+     try to load ivy here from local ivy dir, in case the user has not already dropped
+     it into ant's lib dir (note that the latter copy will always take precedence).
+     We will not fail as long as local lib dir exists (it may be empty) and
+     ivy is in at least one of ant's lib dir or the local lib dir
+     ================================= 
+-->
+	<target name="install-ivy" depends="download-ivy" description="--> install ivy">
+		<path id="ivy.lib.path">
+			<fileset dir="${ivy.jar.dir}" includes="*.jar" />
+		</path>
+		<taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant" classpathref="ivy.lib.path" />
+	</target>
+
+
+	<target name="buildlist" depends="install-ivy">
+		<ivy:buildlist reference="build-path">
+			<fileset dir="${basedir}/..">
+				<include name="**/build.xml" />
+				<exclude name="HIOS-BUILD/**" />
+			</fileset>
+		</ivy:buildlist>
+	</target>
+	<target name="parallel-checkout" depends="parallel-clean">
+		<parallel>
+			<exec executable="svn">
+				<arg value="co" />
+				<arg value="${svn.url}/DATA-CORE/${env.BRANCH}" />
+			</exec>
+		</parallel>
+	</target>
+	<target name="parallel-clean">
+		<parallel>
+			<!--<subant target="clean" buildpath="${build.home}/${build.guid}/DATA-CORE/build.xml" />-->
+			<subant target="clean" buildpath="${build.home}/${build.guid}/HIOS-COMMON/build.xml" />
+			<subant target="clean" buildpath="${build.home}/${build.guid}/HIOS-PE-DATA-COMMON/build.xml" />
+			<subant target="clean" buildpath="${build.home}/${build.guid}/HIOS-GLOBAL-DATA/build.xml" />
+			<subant target="clean" buildpath="${build.home}/${build.guid}/HIOS-NONFED-DATA/build.xml" />
+			<subant target="clean" buildpath="${build.home}/${build.guid}/HIOS-MAIN-DATA/build.xml" />
+			<subant target="clean" buildpath="${build.home}/${build.guid}/HIOS-MQM-DATA/build.xml" />
+			<subant target="clean" buildpath="${build.home}/${build.guid}/HIOS-DCM-FF-DATA/build.xml" />
+			<subant target="clean" buildpath="${build.home}/${build.guid}/HIOS-CCS-DATA/build.xml" />
+			<subant target="clean" buildpath="${build.home}/${build.guid}/HIOS-ASSISTER-DATA/build.xml" />
+			<subant target="clean" buildpath="${build.home}/${build.guid}/HIOS-API-DATA/build.xml" />
+			<subant target="clean" buildpath="${build.home}/${build.guid}/HIOS-DOC-MGMT/build.xml" />
+			<subant target="clean" buildpath="${build.home}/${build.guid}/HIOS-COMMON-UI/build.xml" />
+			<subant target="clean" buildpath="${build.home}/${build.guid}/HIOS-NONFED-UI/build.xml" />
+			<subant target="clean" buildpath="${build.home}/${build.guid}/HIOS-MQM-ESB-BGM/build.xml" />
+			<subant target="clean" buildpath="${build.home}/${build.guid}/HIOS-DCM-FF-UI/build.xml" />
+			<subant target="clean" buildpath="${build.home}/${build.guid}/HIOS-CCS-UI/build.xml" />
+			<subant target="clean" buildpath="${build.home}/${build.guid}/HIOS-ASSISTER-UI/build.xml" />
+			<subant target="clean" buildpath="${build.home}/${build.guid}/HIOS-API/build.xml" />
+		</parallel>
+	</target>
+	<target name="sonar-all" depends="buildlist" description="test">
+		<sequential>
+		<!--<subant target="sonar" buildpath="${build.home}/${build.guid}/DATA-CORE/build.xml" />-->
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-API-DATA/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-API/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-ASSISTER-DATA/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-ASSISTER-UI/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-CCS-DATA/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-CCS-UI/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-COMMON/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-COMMON-UI/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-DCM-FF-DATA/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-DCM-FF-UI/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-DCM-MC-DATA/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-DCM-MC-UI/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-DOC-MGMT/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-ERE-DATA/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-ERE-UI/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-ESB-BGM/build.xml" />
+		<!--<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-FFE-MAIN-UI/build.xml" />-->
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-GLOBAL-DATA/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-IMPORT-EXPORT/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-INTERNAL-WS/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-INTERNAL-WS-DATA/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-MAIN-DATA/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-MAIN-UI/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-MEC-DATA/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-MEC-UI/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-MQM-DATA/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-MQM-ESB-BGM/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-MQM-UI/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-NONFED-DATA/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-NONFED-UI/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-PE-DATA-COMMON/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-RBIS-CONFIG/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-RBIS-DATA/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-RBIS-ESB-BGM/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-RBIS-PE/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-RBIS-PE-DATA/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-RBIS-UI/build.xml" />		
+		<!--subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-SCIS/HIOSSCIS-COMMON/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-SCIS/HIOSSCIS-PROXY/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-SCIS/HIOSSCIS-DATA/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-SCIS/HIOSSCIS/build.xml" /-->
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-HPID-WS/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-HPID-WS-DATA/build.xml"/>
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-DOC-COLLECTION-DATA/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-DOC-COLLECTION-UI/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-PORTAL-DATA/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-PORTAL/build.xml" />
+
+		<!--10/25/2017 add HIOS-SCIS-WS-DATA-->
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-SCIS-WS/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-SCIS-WS-DATA/build.xml"/>
+		
+		</sequential>
+
+	</target>
+
+	<target name="test-all" depends="buildlist" description="test">
+		<!--<subant target="test" buildpathref="build-path" />-->
+		<!--<subant target="unittest" buildpath="${build.home}/${build.guid}/DATA-CORE/build.xml" />-->
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-COMMON/build.xml" />
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-PE-DATA-COMMON/build.xml" />
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-GLOBAL-DATA/build.xml" />
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-NONFED-DATA/build.xml" />
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-MAIN-DATA/build.xml" />
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-MQM-DATA/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-DCM-FF-DATA/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-CCS-DATA/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-ASSISTER-DATA/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-API-DATA/build.xml" />
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-DCMFFM-DATA/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-ERE-DATA/build.xml" />
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-INTERNAL-WS-DATA/build.xml" />
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-PLAN-FINDER-DATA/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-RBIS-DATA/build.xml" />
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-RBIS-PE-DATA/build.xml" />
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-MEC-DATA/build.xml" />
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-DCM-MC-DATA/build.xml" />
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-RBIS-ESB-BGM/build.xml" />
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-RBIS-PE/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-INTERNAL-WS/build.xml" />
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-DOC-MGMT/build.xml" />
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-COMMON-UI/build.xml" />
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-NONFED-UI/build.xml" />
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-MQM-ESB-BGM/build.xml" />
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-DCM-FF-UI/build.xml" />
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-CCS-UI/build.xml" />
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-ASSISTER-UI/build.xml" />
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-API/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-DCMFFM-UI/build.xml" />
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-ERE-UI/build.xml" />
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-MEC-UI/build.xml" />
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-RBIS-UI/build.xml" />
+		<!--<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-FFE-MAIN-UI/build.xml" />-->
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-ESB-BGM/build.xml" />
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-DOC-COLLECTION-DATA/build.xml" />
+		
+		<!--10/25/2017 add HIOS-SCIS-WS-DATA-->
+	    <subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-SCIS-WS/build.xml" />
+		<subant target="unittest" buildpath="${build.home}/${build.guid}/HIOS-SCIS-WS-DATA/build.xml" />
+
+	</target>
+
+	<target name="snapshot-all" depends="install-ivy">
+		<!--<subant target="snapshot" buildpath="${build.home}/${build.guid}/DATA-CORE/build.xml" />-->
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-COMMON/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-PE-DATA-COMMON/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-GLOBAL-DATA/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-NONFED-DATA/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-MAIN-DATA/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-MQM-DATA/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-DCM-FF-DATA/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-CCS-DATA/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-ASSISTER-DATA/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-API-DATA/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-DOC-MGMT/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-COMMON-UI/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-NONFED-UI/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-MQM-ESB-BGM/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-DCM-FF-UI/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-CCS-UI/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-ASSISTER-UI/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-API/build.xml" />
+	</target>
+
+	<target name="test-sonar-mqm">
+		<subant target="test" buildpath="${build.home}/${build.guid}/HIOS-NONFED-UI/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-NONFED-UI/build.xml" />
+	</target>
+
+	<target name="test" depends="install-ivy">
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-MQM-DATA/build.xml" />
+		<subant target="test" buildpath="${build.home}/${build.guid}/HIOS-MQM-DATA/build.xml" />
+		<subant target="sonar" buildpath="${build.home}/${build.guid}/HIOS-MQM-DATA/build.xml" />
+	</target>
+	<!--<target name="data-core-snapshot" depends="install-ivy">
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/DATA-CORE/build.xml" />
+	</target>-->
+	<target name="nonfed-ui-snapshot-alldeps" depends="install-ivy">
+		<!--<subant target="snapshot" buildpath="${build.home}/${build.guid}/DATA-CORE/build.xml" />-->
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-COMMON/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-GLOBAL-DATA/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-NONFED-DATA/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-MAIN-DATA/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-COMMON-UI/build.xml" />
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-NONFED-UI/build.xml" />
+	</target>
+	<!--<target name="test2" depends="install-ivy">
+		<subant target="test" buildpath="${build.home}/${build.guid}/DATA-CORE/build.xml" />
+	</target>-->
+	<target name="test3" depends="install-ivy">
+		<subant target="snapshot" buildpath="${build.home}/${build.guid}/HIOS-MQM-DATA/build.xml" />
+	</target>
+	<target name="test4" depends="install-ivy">
+		<subant target="test" buildpath="${build.home}/${build.guid}/HIOS-MQM-DATA/build.xml" />
+	</target>
+	<macrodef name="branchcheckout">
+		<attribute name="modulename" />
+		<attribute name="branch" />
+		<attribute name="url" />
+		<attribute name="checkout.dir" />
+		<sequential>
+			<echo>checkingout @{url}/@{modulename}/@{branch} @{modulename}</echo>
+			<exec executable="svn" dir="@{checkout.dir}">
+				<arg value="co" />
+				<arg value="@{url}/@{modulename}/@{branch}" />
+				<arg value="@{modulename}" />
+			</exec>
+		</sequential>
+	</macrodef>
+	<target name="checkout" depends="create_workspace">
+		<parallel threadCount="10">
+			<!-- TODO: load ant contrib using ivy and do this in a loop -->
+			<branchcheckout url="${svn.url}" modulename="HIOS-BUILD" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<!--<branchcheckout url="${svn.url}" modulename="DATA-CORE" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />-->
+			<branchcheckout url="${svn.url}" modulename="HIOS-API" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-API-DATA" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-ASSISTER-DATA" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-ASSISTER-UI" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-CCS-DATA" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-CCS-UI" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-COMMON" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-COMMON-UI" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-DCM-FF-DATA" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-DCMFFM-DATA" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-DCMFFM-UI" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-DCM-FF-UI" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-DCM-MC-DATA" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-DCM-MC-UI" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-DOC-COLLECTION-DATA" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-DOC-COLLECTION-UI" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-DOC-MGMT" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-ERE-DATA" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-ERE-UI" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-ESB-BGM" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<!--<branchcheckout url="${svn.url}" modulename="HIOS-FFE-MAIN-UI" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />-->
+			<branchcheckout url="${svn.url}" modulename="HIOS-GLOBAL-DATA" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-IMPORT-EXPORT" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-INTERNAL-WS" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-MAIN-DATA" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-MAIN-UI" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-MEC-DATA" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-MEC-UI" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-MQM-DATA" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-MQM-ESB-BGM" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-MQM-UI" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-NONFED-DATA" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-NONFED-UI" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-PE-DATA-COMMON" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-PLAN-FINDER-DATA" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-PLAN-FINDER-UI" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-RBIS-DATA" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-RBIS-ESB-BGM" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-RBIS-PE" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-RBIS-PE-DATA" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-RBIS-UI" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<!--branchcheckout url="${svn.url}" modulename="HIOS-SCIS/HIOSSCIS" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-SCIS/HIOSSCIS-COMMON" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-SCIS/HIOSSCIS-DATA" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-SCIS/HIOSSCIS-PROXY" branch="${branch}" checkout.dir="${build.home}/${build.guid}" /-->
+			<branchcheckout url="${svn.url}" modulename="HIOS-HPID-WS" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-HPID-WS-DATA" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-PORTAL" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-PORTAL-DATA" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+
+			<!--10/25/2017 add HIOS-SCIS-WS-DATA-->
+			<branchcheckout url="${svn.url}" modulename="HIOS-SCIS-WS" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			<branchcheckout url="${svn.url}" modulename="HIOS-SCIS-WS-DATA" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+			
+		</parallel>
+	</target>
+	<target name="clean-checkout">
+		<delete includeEmptyDirs="true">
+			<fileset dir="..">
+				<include name="**/*" />
+				<exclude name="**/HIOS-BUILD/**" />
+			</fileset>
+		</delete>
+	</target>
+
+	<target name="mqm-selenium-test">
+		<subant target="runSelenium" buildpath="${build.home}/${build.guid}/HIOS-MQM-DATA/build.xml" />
+	</target>
+	<!--<target name="datacore-selenium-test">
+		<subant target="runSelenium" buildpath="${build.home}/${build.guid}/DATA-CORE/build.xml" />
+	</target>-->
+	<target name="maindata-test">
+		<subant target="runSelenium" buildpath="${build.home}/${build.guid}/HIOS-MAIN-DATA/build.xml" />
+	</target>
+	<target name="mainui-test">
+		<subant target="runSelenium" buildpath="${build.home}/${build.guid}/HIOS-MAIN-UI/build.xml" />
+	</target>
+	
+	<target name="selenium-test">
+		<parallel threadCount="2">
+			<!--<subant target="runSelenium" buildpath="${build.home}/${build.guid}/DATA-CORE/build.xml" />-->
+			<subant target="runSelenium" buildpath="${build.home}/${build.guid}/HIOS-COMMON/build.xml" />
+			<subant target="runSelenium" buildpath="${build.home}/${build.guid}/HIOS-COMMON-UI/build.xml" />
+			<subant target="runSelenium" buildpath="${build.home}/${build.guid}/HIOS-GLOBAL-DATA/build.xml" />
+			<subant target="runSelenium" buildpath="${build.home}/${build.guid}/HIOS-MAIN-DATA/build.xml" />
+			<subant target="runSelenium" buildpath="${build.home}/${build.guid}/HIOS-MQM-DATA/build.xml" />
+			<subant target="runSelenium" buildpath="${build.home}/${build.guid}/HIOS-NONFED-DATA/build.xml" />
+			<subant target="runSelenium" buildpath="${build.home}/${build.guid}/HIOS-NONFED-UI/build.xml" />
+			<subant target="runSelenium" buildpath="${build.home}/${build.guid}/HIOS-PE-DATA-COMMON/build.xml" />
+			<subant target="runSelenium" buildpath="${build.home}/${build.guid}/HIOS-MQM-ESB-BGM/build.xml" />
+		</parallel>
+	</target>
+	
+	<target name="mock_report">
+		<!--<mkdir dir="${build.home}/${build.guid}/DATA-CORE/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/DATA-CORE/seleniumTest/reports/all-tests.html" />
+		</exec>-->
+		<mkdir dir="${build.home}/${build.guid}/HIOS-API/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-API/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-API-DATA/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-API-DATA/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-ASSISTER-DATA/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-ASSISTER-DATA/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-ASSISTER-UI/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-ASSISTER-UI/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-BUILD/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-BUILD/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-CCS-DATA/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-CCS-DATA/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-CCS-UI/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-CCS-UI/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-COMMON/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-COMMON/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-COMMON-UI/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-COMMON-UI/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-DCM-FF-DATA/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-DCM-FF-DATA/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-DCMFFM-DATA/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-DCMFFM-DATA/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-DCMFFM-UI/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-DCMFFM-UI/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-DCM-FF-UI/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-DCM-FF-UI/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-DCM-MC-DATA/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-DCM-MC-DATA/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-DCM-MC-UI/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-DCM-MC-UI/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-DOC-COLLECTION-DATA/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-DOC-COLLECTION-DATA/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-DOC-COLLECTION-UI/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-DOC-COLLECTION-UI/seleniumTest/reports/all-tests.html" />
+		</exec>
+
+		<mkdir dir="${build.home}/${build.guid}/HIOS-DOC-MGMT/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-DOC-MGMT/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-ERE-DATA/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-ERE-DATA/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-ERE-UI/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-ERE-UI/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-ESB-BGM/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-ESB-BGM/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<!--<mkdir dir="${build.home}/${build.guid}/HIOS-FFE-MAIN-UI/seleniumTest/reports" />-->
+		<!--<exec executable="touch">-->
+			<!--<arg value="${build.home}/${build.guid}/HIOS-FFE-MAIN-UI/seleniumTest/reports/all-tests.html" />-->
+		<!--</exec>-->
+		<mkdir dir="${build.home}/${build.guid}/HIOS-GLOBAL-DATA/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-GLOBAL-DATA/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-IMPORT-EXPORT/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-IMPORT-EXPORT/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-INTERNAL-WS/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-INTERNAL-WS/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-MAIN-DATA/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-MAIN-DATA/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-MAIN-UI/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-MAIN-UI/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-MEC-DATA/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-MEC-DATA/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-MEC-UI/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-MEC-UI/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-MQM-DATA/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-MQM-DATA/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-MQM-ESB-BGM/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-MQM-ESB-BGM/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-MQM-UI/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-MQM-UI/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-NONFED-DATA/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-NONFED-DATA/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-NONFED-UI/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-NONFED-UI/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-PE-DATA-COMMON/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-PE-DATA-COMMON/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-PLAN-FINDER-DATA/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-PLAN-FINDER-DATA/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-PLAN-FINDER-UI/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-PLAN-FINDER-UI/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-RBIS-DATA/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-RBIS-DATA/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-RBIS-ESB-BGM/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-RBIS-ESB-BGM/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-RBIS-PE/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-RBIS-PE/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-RBIS-PE-DATA/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-RBIS-PE-DATA/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-RBIS-UI/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-RBIS-UI/seleniumTest/reports/all-tests.html" />
+		</exec>
+		
+		<mkdir dir="${build.home}/${build.guid}/HIOS-PORTAL-DATA/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-PORTAL-DATA/seleniumTest/reports/all-tests.html" />
+		</exec>
+		<mkdir dir="${build.home}/${build.guid}/HIOS-PORTAL/seleniumTest/reports" />
+		<exec executable="touch">
+			<arg value="${build.home}/${build.guid}/HIOS-PORTAL/seleniumTest/reports/all-tests.html" />
+		</exec>
+			
+	</target>
+
+	<scriptdef name="generateguid" language="javascript">
+		<attribute name="property" />
+		<![CDATA[
+		var version = java.lang.System.getProperty("java.version");
+		if (version.startsWith("1.8")) {
+		    load("nashorn:mozilla_compat.js");
+		}
+	    importClass( java.util.UUID );
+	    project.setProperty( attributes.get( "property" ), UUID.randomUUID() );
+	    ]]>
+	</scriptdef>
+	<target name="create_workspace">
+		<generateguid property="build.guid" />
+		<delete file="build.properties" />
+		<echo file="build.properties">build.guid=${build.guid}
+BUILD_GUID=${build.guid}
+         </echo>
+		<mkdir dir="${build.home}/${build.guid}" />
+		<delete file="build" />
+		<symlink link="build" resource="${build.home}/${build.guid}" />
+	</target>
+	<target name="delete_workspace" if="build.guid">
+		<echo message="Deleteing ${build.guid}" />
+		<delete dir="${build.home}/${build.guid}" verbose="true" />
+	</target>
+	<macrodef name="remaindercheckout">
+		<attribute name="modulename" />
+		<attribute name="branch" />
+		<attribute name="url" />
+		<attribute name="checkout.dir" />
+		<sequential>
+			<echo>checkingout @{url}/@{modulename}/@{branch} @{modulename}</echo>
+			<exec executable="@{checkout.dir}/checkout.sh" dir="@{checkout.dir}">
+				<arg value="@{modulename}" />
+				<arg value="@{url}" />
+				<arg value="@{branch}" />
+			</exec>
+		</sequential>
+	</macrodef>
+	
+	<target name="merge" depends="create_workspace">
+		<copy todir="${build.home}/${build.guid}" file="run-merge.sh" />
+		<chmod perm="755" file="${build.home}/${build.guid}/run-merge.sh" />
+
+		<copy todir="${build.home}/${build.guid}" file="run-order-modules.sh" />
+		<chmod perm="755" file="${build.home}/${build.guid}/run-order-modules.sh" />
+
+		<copy todir="${build.home}/${build.guid}" file="build-modules.txt" />
+		<chmod perm="755" file="${build.home}/${build.guid}/build-modules.txt" />
+
+		<copy todir="${build.home}/${build.guid}" file="module-order.txt" />
+		<chmod perm="755" file="${build.home}/${build.guid}/module-order.txt" />
+
+		<copy todir="${build.home}/${build.guid}" file="checkout.sh" />
+		<chmod perm="755" file="${build.home}/${build.guid}/checkout.sh" />
+		<remaindercheckout url="${svn.url}" modulename="HIOS-BUILD" branch="${branch}" checkout.dir="${build.home}/${build.guid}" />
+
+		<copy file="build.properties" todir="${build.home}/${build.guid}/HIOS-BUILD" />
+		<copy file="modules.properties" todir="${build.home}/${build.guid}/HIOS-BUILD" />
+
+		<exec executable="${build.home}/${build.guid}/run-order-modules.sh" dir="${build.home}/${build.guid}" />
+
+		<parallel threadCount="10">
+			<remaindercheckout url="${svn.url}" modulename="HIOS-COMMON" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<!--<remaindercheckout url="${svn.url}" modulename="DATA-CORE" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />-->
+			<remaindercheckout url="${svn.url}" modulename="HIOS-GLOBAL-DATA" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-MAIN-DATA" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-COMMON-UI" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-DOC-MGMT" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-IMPORT-EXPORT" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-DCM-MC-DATA" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-DCM-MC-UI" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-DOC-COLLECTION-DATA" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-DOC-COLLECTION-UI" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-ESB-BGM" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-PE-DATA-COMMON" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-RBIS-DATA" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-RBIS-ESB-BGM" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-RBIS-PE" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-RBIS-PE-DATA" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-RBIS-UI" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<!--<remaindercheckout url="${svn.url}" modulename="HIOS-FFE-MAIN-UI" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />-->
+			<remaindercheckout url="${svn.url}" modulename="HIOS-MAIN-UI" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-MQM-DATA" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-MQM-ESB-BGM" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-MQM-UI" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-NONFED-DATA" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-API" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-API-DATA" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-ASSISTER-DATA" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-ASSISTER-UI" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-CCS-DATA" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-CCS-UI" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-DCM-FF-DATA" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-DCM-FF-UI" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-ERE-DATA" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-ERE-UI" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-INTERNAL-WS" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-INTERNAL-WS-DATA" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-MEC-DATA" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-MEC-UI" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-NONFED-UI" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<!--remaindercheckout url="${svn.url}" modulename="HIOS-SCIS/HIOSSCIS" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-SCIS/HIOSSCIS-COMMON" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-SCIS/HIOSSCIS-DATA" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-SCIS/HIOSSCIS-PROXY" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" /-->
+			<remaindercheckout url="${svn.url}" modulename="HIOS-HPID-WS" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-HPID-WS-DATA" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-PORTAL-DATA" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-PORTAL" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+
+			<!--10/25/2017 add HIOS-SCIS-WS-DATA-->
+			<remaindercheckout url="${svn.url}" modulename="HIOS-SCIS-WS" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			<remaindercheckout url="${svn.url}" modulename="HIOS-SCIS-WS-DATA" branch="${branch}@HEAD" checkout.dir="${build.home}/${build.guid}" />
+			
+		</parallel>
+		<echo file="${build.home}/${build.guid}/HIOS-BUILD/build.properties">
+			build.guid=${build.guid}
+			BUILD_GUID=${build.guid}
+		</echo>
+		<exec executable="${build.home}/${build.guid}/run-merge.sh" dir="${build.home}/${build.guid}" failonerror="true" />
+	</target>
+	<target name="create_int_release" depends="install-ivy,check_branch" >
+		<delete dir="dist" />
+		<delete dir="release" />
+		<mkdir dir="dist" />
+		<mkdir dir="release" />
+		<ivy:configure file="ivysettings_int.xml" />
+		<echo message="Creating Release" />
+		<ivy:resolve conf="package" />
+		<ivy:retrieve pattern="dist/[artifact](-[classifier]).[ext]" type="jar,war,esb,zip,tar" conf="package" />
+		<zip destfile="release/release.zip" basedir="dist" /> 
+	</target>
+	<target name="check_branch" unless="branch.name" >
+		<fail message="No branch specified."/>
+	</target>
+	
+	<scriptdef name="branchlogic" language="javascript">
+		<attribute name="modulename" />
+		<![CDATA[
+	    var branch = project.getProperty('branch.name');
+		var rel_version = project.getProperty('ivydec.revision');
+		var int_version = project.getProperty('ivyintdec.revision');
+		var snap_version = project.getProperty('ivysnapdec.revision');
+		var modulename = attributes.get("modulename");
+		var re = new RegExp( /^0*/);
+		var intSnap;
+		var intInt;
+		var intRel;
+		
+		if (snap_version == null)
+		{
+			snap_version="0.0.0.0-SNAPSHOT"
+		}
+		if (int_version == null)
+		{
+			int_version="0.0.0.0"
+		}
+		if (rel_version == null)
+		{
+			rel_version="0.0.0.0"
+		}
+		snap_version=snap_version.replace("-SNAPSHOT","");
+		snap_version=snap_version.replace(".","");
+		intSnap=parseInt((snap_version + "").replace(  re , ""));
+		
+		int_version=int_version.replace(".","");
+		intInt=parseInt((int_version + "").replace(  re , ""));
+		
+		rel_version=rel_version.replace(".","");
+		intRel=parseInt((rel_version + "").replace(  re , ""));
+
+		var test=modulename+".branch.choice"
+
+		if(intSnap > intRel || intInt > intRel)
+		{
+			project.setProperty(test, branch );
+		}
+		else
+		{
+			project.setProperty(test, "" );
+		}
+		
+		if (branch == null) 
+		{
+			project.setProperty(test, "");
+		}
+	  ]]>		
+	</scriptdef>
+	<scriptdef name="initbranchdecider" language="javascript">
+		<![CDATA[
+		project.setProperty('ivydec.revision', "0.0.0.0" );
+		project.setProperty('ivyintdec.revision', "0.0.0.0" );
+		project.setProperty('ivysnapdec.revision', "0.0.0.0-SNAPSHOT" );
+		]]>
+	</scriptdef>
+	<macrodef name="branchdecider">
+		<attribute name="modulename" />
+		<attribute name="org" />
+		<sequential>
+			<initbranchdecider />
+			<echo>test:: @{org} :: @{modulename} :: ${branch.name}</echo>
+			<ivy:buildnumber organisation="@{org}" module="@{modulename}" revision="0+" resolver="buildnum-releases" prefix="ivydec" default="0.0.0.0" />
+			<ivy:buildnumber organisation="@{org}" module="@{modulename}" revision="0+" resolver="buildnum-integration-releases" prefix="ivyintdec" default="0.0.0.0" branch="${branch.name}" />
+			<ivy:buildnumber organisation="@{org}" module="@{modulename}" revision="0+" resolver="buildnum-snapshots" prefix="ivysnapdec" default="0.0.0.0-SNAPSHOT" branch="${branch.name}" />
+			<echo message="@{org} @{modulename} ${ivydec.revision} ${ivyintdec.revision} ${ivysnapdec.revision}" />
+			<branchlogic modulename="@{modulename}" />
+		</sequential>
+	</macrodef>
+	
+	
+	<target name="create_dev_ui_release" depends="install-ivy,resolve-copy-ui,stop-jboss-ui,deploy-ui,start-jboss-ui" >
+	</target>
+	
+	<target name="resolve-copy-ui">
+		<delete dir="dev-ui-dist" />
+		<delete dir="dev-ui-release" />
+		<mkdir dir="dev-ui-dist" />
+		<mkdir dir="dev-ui-release" />
+		<ivy:configure file="ivysettings_dev_ui.xml" />
+		<echo message="Creating Dev UI and API Release..." />
+	  <!--    <ivy:resolve conf="ui" /> -->
+	  <!--<branchdecider org="org.cms.data" modulename="DATA-CORE" />-->
+	  <branchdecider org="org.cms.hios.pe.api" modulename="HIOS-API" />
+	  <branchdecider org="org.cms.hios.pe.api" modulename="HIOS-API-DATA" />
+	  <branchdecider org="org.cms.hios.assister" modulename="HIOS-ASSISTER-UI" />
+	  <branchdecider org="org.cms.hios.ccs" modulename="HIOS-CCS-UI" />
+	  <branchdecider org="org.cms.hios" modulename="HIOS-COMMON"  />
+	  <branchdecider org="org.cms.hios" modulename="HIOS-COMMON-UI" />
+	  <branchdecider org="org.cms.hios.ff" modulename="HIOS-DCM-FF-UI" />
+	  <branchdecider org="org.cms.hios.dcm.mc" modulename="HIOS-DCM-MC-UI" />
+	  <branchdecider org="org.cms.hios.doc.collection" modulename="HIOS-DOC-COLLECTION-UI" />
+	  <branchdecider org="org.cms.hios.doc.mgmt" modulename="HIOS-DOC-MGMT" />
+	  <branchdecider org="org.cms.hios.ere" modulename="HIOS-ERE-UI" />
+	  <!--<branchdecider org="org.cms.hios.ffe" modulename="HIOS-FFE-MAIN-UI" />-->
+	  <branchdecider org="org.cms.hios.global" modulename="HIOS-GLOBAL-DATA" />
+	  <branchdecider org="org.cms.hios" modulename="HIOS-HPOES-WS" />
+	  <branchdecider org="org.cms.hios" modulename="HIOS-HPID-WS-DATA" />
+	  <branchdecider org="org.cms.hios.internal.ws" modulename="HIOS-INTERNAL-WS" />
+	  <branchdecider org="org.cms.hios.internal.ws" modulename="HIOS-INTERNAL-WS-DATA" />
+	  <branchdecider org="org.cms.hios.main" modulename="HIOS-MAIN-UI" />     
+	  <branchdecider org="org.cms.hios.mec" modulename="HIOS-MEC-UI" />
+	  <branchdecider org="org.cms.hios.mqm" modulename="HIOS-MQM-UI" />
+	  <branchdecider org="org.cms.hios" modulename="HIOS-NONFED-UI" />
+	  <branchdecider org="org.cms.hios.pe.aob" modulename="HIOS-PE-DATA-COMMON" />
+	  <branchdecider org="org.cms.hios.rbis.pe" modulename="HIOS-RBIS-PE" />
+	  <branchdecider org="org.cms.hios.rbis.pe.data" modulename="HIOS-RBIS-PE-DATA" />
+	  <branchdecider org="org.cms.rbis" modulename="HIOS-RBIS-UI" />  
+	  <branchdecider org="org.cms.hios.portal" modulename="HIOS-PORTAL" /> 		
+	  
+	  
+	  <!--10/25/2017 add HIOS-SCIS-WS-DATA-->
+	  <branchdecider org="org.cms.hios" modulename="HIOS-SCIS-WS" />
+	  <branchdecider org="org.cms.hios" modulename="HIOS-SCIS-WS-DATA" />
+	  
+	  <!--<branchdecider org="org.cms.hios.scis" modulename="HIOSSCIS" />-->
+	  <!--<branchdecider org="org.cms.hios.scis" modulename="HIOSSCIS-DATA" /> -->
+	  <!--<branchdecider org="org.cms.hios.scis" modulename="HIOSSCIS-PROXY" />-->
+	  <!--<branchdecider org="org.cms.hios.scis" modulename="HIOSSCIS-COMMON" />-->
+	  <ivy:resolve>
+		  <!--<dependency org="org.cms.data" name="DATA-CORE" rev="latest.integration" branch="${DATA-CORE.branch.choice}" conf="ui"/>-->
+		  <dependency org="org.cms.hios.pe.api" name="HIOS-API" rev="latest.integration" branch="${HIOS-API.branch.choice}" conf="ui"/>
+		  <dependency org="org.cms.hios.pe.api" name="HIOS-API-DATA" rev="latest.integration" branch="${HIOS-API-DATA.branch.choice}" conf="ui"/>
+		  <dependency org="org.cms.hios.assister" name="HIOS-ASSISTER-UI" rev="latest.integration" branch="${HIOS-ASSISTER-UI.branch.choice}" conf="ui"/>
+		  <dependency org="org.cms.hios.ccs" name="HIOS-CCS-UI" rev="latest.integration" branch="${HIOS-CCS-UI.branch.choice}" conf="ui"/>
+		  <dependency org="org.cms.hios" name="HIOS-COMMON"  rev="latest.integration" branch="${HIOS-COMMON.branch.choice}" conf="ui"/>
+		  <dependency org="org.cms.hios" name="HIOS-COMMON-UI" rev="latest.integration" branch="${HIOS-COMMON-UI.branch.choice}" conf="ui"/>
+		  <dependency org="org.cms.hios.ff" name="HIOS-DCM-FF-UI" rev="latest.integration" branch="${HIOS-DCM-FF-UI.branch.choice}" conf="ui"/>
+		  <dependency org="org.cms.hios.dcm.mc" name="HIOS-DCM-MC-UI" rev="latest.integration" branch="${HIOS-DCM-MC-UI.branch.choice}" conf="ui"/>
+  		  <dependency org="org.cms.hios.doc.collection" name="HIOS-DOC-COLLECTION-UI" rev="latest.integration" branch="${HIOS-DOC-COLLECTION-UI.branch.choice}" conf="ui"/>
+
+		  <dependency org="org.cms.hios.doc.mgmt" name="HIOS-DOC-MGMT" rev="latest.integration" branch="${HIOS-DOC-MGMT.branch.choice}" conf="ui"/>
+		  <dependency org="org.cms.hios.ere" name="HIOS-ERE-UI" rev="latest.integration" branch="${HIOS-ERE-UI.branch.choice}" conf="ui"/>
+		  <!--<dependency org="org.cms.hios.ffe" name="HIOS-FFE-MAIN-UI" rev="latest.integration" branch="${HIOS-FFE-MAIN-UI.branch.choice}" conf="ui"/>-->
+		  <dependency org="org.cms.hios.global" name="HIOS-GLOBAL-DATA" rev="latest.integration" branch="${HIOS-GLOBAL-DATA.branch.choice}" conf="ui"/>
+		  <dependency org="org.cms.hios" name="HIOS-HPOES-WS" rev="latest.integration" branch="${HIOS-HPOES-WS.branch.choice}" conf="ui"/>
+		  <dependency org="org.cms.hios" name="HIOS-HPID-WS-DATA" rev="latest.integration" branch="${HIOS-HPID-WS-DATA.branch.choice}" conf="ui"/>
+		  <dependency org="org.cms.hios.internal.ws" name="HIOS-INTERNAL-WS" rev="latest.integration" branch="${HIOS-INTERNAL-WS.branch.choice}" conf="ui"/>
+		  <dependency org="org.cms.hios.internal.ws" name="HIOS-INTERNAL-WS-DATA" rev="latest.integration" branch="${HIOS-INTERNAL-WS-DATA.branch.choice}" conf="ui"/>
+		  <dependency org="org.cms.hios.main" name="HIOS-MAIN-UI" rev="latest.integration" branch="${HIOS-MAIN-UI.branch.choice}" conf="ui"/>     
+		  <dependency org="org.cms.hios.mec" name="HIOS-MEC-UI" rev="latest.integration" branch="${HIOS-MEC-UI.branch.choice}" conf="ui"/>
+		  <dependency org="org.cms.hios.mqm" name="HIOS-MQM-UI" rev="latest.integration" branch="${HIOS-MQM-UI.branch.choice}" conf="ui"/>
+		  <dependency org="org.cms.hios" name="HIOS-NONFED-UI" rev="latest.integration" branch="${HIOS-NONFED-UI.branch.choice}" conf="ui"/>
+		  <dependency org="org.cms.hios.pe.aob" name="HIOS-PE-DATA-COMMON" rev="latest.integration" branch="${HIOS-PE-DATA-COMMON.branch.choice}" conf="ui"/>
+		  <dependency org="org.cms.hios.rbis.pe" name="HIOS-RBIS-PE" rev="latest.integration" branch="${HIOS-RBIS-PE.branch.choice}" conf="ui"/>
+		  <dependency org="org.cms.hios.rbis.pe.data" name="HIOS-RBIS-PE-DATA" rev="latest.integration" branch="${HIOS-RBIS-PE-DATA.branch.choice}" conf="ui"/>
+		  <dependency org="org.cms.rbis" name="HIOS-RBIS-UI" rev="latest.integration" branch="${HIOS-RBIS-UI.branch.choice}" conf="ui"/>  
+	  	 <dependency org="org.cms.hios.portal" name="HIOS-PORTAL" rev="latest.integration" branch="${HIOS-PORTAL.branch.choice}" conf="ui"/>
+		 
+		 
+		 <!--10/25/2017 add HIOS-SCIS-WS-DATA-->
+	  	<dependency org="org.cms.hios" name="HIOS-SCIS-WS" rev="latest.integration" branch="${HIOS-SCIS-WS.branch.choice}" conf="ui"/>
+		<dependency org="org.cms.hios" name="HIOS-SCIS-WS-DATA" rev="latest.integration" branch="${HIOS-SCIS-WS-DATA.branch.choice}" conf="ui"/>
+		
+		  <!--<dependency org="org.cms.hios.scis" name="HIOSSCIS" rev="latest.integration" branch="${HIOSSCIS.branch.choice}" conf="ui"/>-->
+		  <!--<dependency org="org.cms.hios.scis" name="HIOSSCIS-DATA" rev="latest.integration" branch="${HIOSSCIS-DATA.branch.choice}" conf="ui"/> -->
+		  <!--<dependency org="org.cms.hios.scis" name="HIOSSCIS-PROXY" rev="latest.integration" branch="${HIOSSCIS-PROXY.branch.choice}" conf="ui"/>-->
+		  <!--<dependency org="org.cms.hios.scis" name="HIOSSCIS-COMMON" rev="latest.integration" branch="${HIOSSCIS-COMMON.branch.choice}" conf="ui"/>-->
+	  </ivy:resolve>
+		
+		
+		<ivy:retrieve pattern="dev-ui-dist/[artifact](-[classifier]).[ext]" type="jar,war,esb,zip,tar" />
+		<zip destfile="dev-ui-release/dev-ui-release.zip" basedir="dev-ui-dist" />
+		<!--TODO: Delete all from /usr/tmp folder before scp-->
+		<scp file="${BUILD_HOME}/${BUILD_GUID}/HIOS-BUILD/dev-ui-release/dev-ui-release.zip" todir="${cicd.user}@${ui.server.ip}:/usr/tmp" keyfile="/home/${tomcat.user}/.ssh/id_rsa"/>	
+		<sshexec command="/bin/sh -c ' /usr/bin/unzip -o /usr/tmp/dev-ui-release.zip -d /usr/tmp '" host="${ui.server.ip}" username="${cicd.user}" keyfile="/home/${tomcat.user}/.ssh/id_rsa" />
+	</target>
+	
+	<target name="stop-jboss-ui">
+		<echo message="Stopping JBoss Server HIOS8..." />
+		<sshexec host="${ui.server.ip}"
+			username="${jboss.user}"
+			keyfile="${user.home}/.ssh/id_rsa"
+			command="${jboss.bin.dir}/stopHiosAPI.sh" 
+			failonerror="false"/>
+	    <echo>+-----------------------------+</echo>
+	    <echo>| J B O S S   S T O P P E D   |</echo>
+		<echo>|    HIOS API                 |</echo>
+		<echo>+-----------------------------+</echo>
+		<sshexec host="${ui.server.ip}"
+			username="${jboss.user}"
+			keyfile="${user.home}/.ssh/id_rsa"
+			command="sleep 45" 
+			failonerror="false"/>
+		<sshexec host="${ui.server.ip}"
+			username="${jboss.user}"
+			keyfile="${user.home}/.ssh/id_rsa"
+			command="${jboss.bin.dir}/stopHiosUI.sh" 
+			failonerror="false"/>
+	    <echo>+-----------------------------+</echo>
+	    <echo>| J B O S S  S T O P P E D    |</echo>
+		<echo>|    HIOS UI                  |</echo>
+		<echo>+-----------------------------+</echo>
+		<sshexec host="${ui.server.ip}"
+			username="${jboss.user}"
+			keyfile="${user.home}/.ssh/id_rsa"
+			command="sleep 45" 
+			failonerror="false"/>
+	</target>
+		
+	<target name="deploy-ui">
+		<echo message="Deploying to HIOS8..." />
+		<echo file="copy-api.sh">
+			# API/DEPLOY
+			cp /usr/tmp/HIOS-API.esb ${jboss.dir}/server/api/deploy/
+			cp /usr/tmp/HIOS-API-DATA.esb ${jboss.dir}/server/api/deploy/
+			cp /usr/tmp/HIOS-RBIS-PE-DATA.esb ${jboss.dir}/server/api/deploy/
+			cp /usr/tmp/HIOS-RBIS-PE.esb ${jboss.dir}/server/api/deploy/
+			cp /usr/tmp/HIOS-RBIS-DATA.esb ${jboss.dir}/server/api/deploy/
+			cp /usr/tmp/HIOS-INTERNAL-WS.esb ${jboss.dir}/server/api/deploy/
+			cp /usr/tmp/HIOS-INTERNAL-WS-DATA.esb ${jboss.dir}/server/api/deploy/
+			cp /usr/tmp/HIOS-HPID-WS-DATA.esb ${jboss.dir}/server/api/deploy/
+			cp /usr/tmp/HIOS-HPOES-WS.esb ${jboss.dir}/server/api/deploy/
+			#cp /usr/tmp/HIOSSCIS.esb ${jboss.dir}/server/api/deploy/
+			#cp /usr/tmp/HIOSSCIS-DATA.esb ${jboss.dir}/server/api/deploy/
+			
+			# API/LIB
+			# N/A
+			
+			# UI/DEPLOY
+			cp /usr/tmp/HIOS-ASSISTER-UI.war ${jboss.dir}/server/ui/deploy/
+			cp /usr/tmp/HIOS-CCS-UI.war ${jboss.dir}/server/ui/deploy/
+			cp /usr/tmp/HIOS-ERE-UI.war ${jboss.dir}/server/ui/deploy/
+			# cp /usr/tmp/HIOS-FFE-MAIN-UI.war ${jboss.dir}/server/ui/deploy/
+			cp /usr/tmp/HIOS-MAIN-UI.war ${jboss.dir}/server/ui/deploy/
+			cp /usr/tmp/HIOS-MEC-UI.war ${jboss.dir}/server/ui/deploy/
+			cp /usr/tmp/HIOS-MQM-UI.war ${jboss.dir}/server/ui/deploy/
+			cp /usr/tmp/HIOS-NONFED-UI.war ${jboss.dir}/server/ui/deploy/
+			cp /usr/tmp/HIOS-RBIS-UI.war ${jboss.dir}/server/ui/deploy/
+			cp /usr/tmp/HIOS-DCM-FF-UI.war ${jboss.dir}/server/ui/deploy/
+			cp /usr/tmp/HIOS-DCM-MC-UI.war ${jboss.dir}/server/ui/deploy/
+			cp /usr/tmp/HIOS-DOC-COLLECTION-UI.war ${jboss.dir}/server/ui/deploy/
+			cp /usr/tmp/HIOS-PORTAL.war ${jboss.dir}/server/ui/deploy/
+			
+			# UI/LIB
+			#cp /usr/tmp/DATA-CORE.jar ${jboss.dir}/server/ui/lib/
+			cp /usr/tmp/HIOS-COMMON.jar ${jboss.dir}/server/ui/lib/
+			cp /usr/tmp/HIOS-COMMON-UI.jar ${jboss.dir}/server/ui/lib/
+			cp /usr/tmp/HIOS-MAIN-DATA-CLIENT.jar ${jboss.dir}/server/ui/lib/
+			cp /usr/tmp/HIOS-GLOBAL-DATA-CLIENT.jar ${jboss.dir}/server/ui/lib/
+			cp /usr/tmp/HIOS-DOC-MGMT-CLIENT.jar ${jboss.dir}/server/ui/lib/
+		</echo>
+		<scp file="copy-api.sh" todir="${cicd.user}@${ui.server.ip}:/usr/tmp/" keyfile="/home/${tomcat.user}/.ssh/id_rsa"/>
+		<sshexec host="${ui.server.ip}"
+			username="${cicd.user}"
+			keyfile="/home/${tomcat.user}/.ssh/id_rsa"
+			command="chmod 755 /usr/tmp/copy-api.sh"/>
+		<sshexec host="${ui.server.ip}"
+			username="${jboss.user}"
+			keyfile="/home/${tomcat.user}/.ssh/id_rsa"
+			command="/usr/tmp/copy-api.sh"/>
+	</target>
+	
+	<target name="start-jboss-ui">
+		<echo message="Starting JBoss Server HIOS8..." />
+		<sshexec host="${ui.server.ip}"
+			username="${jboss.user}"
+			keyfile="${user.home}/.ssh/id_rsa"
+			command="nohup ${jboss.bin.dir}/runHiosAPI.sh &gt; /dev/null 2&gt; error.log &lt; /dev/null &amp;"/>
+	    <echo>+-----------------------------+</echo>
+	    <echo>| J B O S S   S T A R T E D   |</echo>
+		<echo>|    HIOS API                 |</echo>
+		<echo>+-----------------------------+</echo>
+		<sshexec host="${ui.server.ip}"
+			username="${jboss.user}"
+			keyfile="${user.home}/.ssh/id_rsa"
+			command="nohup ${jboss.bin.dir}/runHiosUI.sh &gt; /dev/null 2&gt; error.log &lt; /dev/null &amp;"/>
+	    <echo>+-----------------------------+</echo>
+	    <echo>| J B O S S   S T A R T E D   |</echo>
+		<echo>|    HIOS UI                  |</echo>
+		<echo>+-----------------------------+</echo>
+	</target>
+	
+	<target name="create_dev_data_release" depends="install-ivy,resolve-copy-data,stop-jboss-data,deploy-data,start-jboss-data" >
+	</target>
+	
+	<target name="resolve-copy-data">
+		<delete dir="dev-data-dist" />
+		<delete dir="dev-data-release" />
+		<mkdir dir="dev-data-dist" />
+		<mkdir dir="dev-data-release" />
+		<ivy:configure file="ivysettings_dev_data.xml" />
+		<echo message="Creating Dev Data Access and Doc Mgmt Release..." />
+		<!-- <ivy:resolve conf="data" /> -->
+
+	    <!--<branchdecider org="org.cms.data" modulename="DATA-CORE" />-->
+		<branchdecider org="org.cms.hios.assister" modulename="HIOS-ASSISTER-DATA" />
+		<branchdecider org="org.cms.hios.ccs" modulename="HIOS-CCS-DATA" />
+		<branchdecider org="org.cms.hios" modulename="HIOS-COMMON" />
+		<branchdecider org="org.cms.hios.ff" modulename="HIOS-DCM-FF-DATA" />
+		<branchdecider org="org.cms.hios.dcm.mc" modulename="HIOS-DCM-MC-DATA" />
+		<branchdecider org="org.cms.hios.doc.collection" modulename="HIOS-DOC-COLLECTION-DATA" />
+		<branchdecider org="org.cms.hios.doc.mgmt" modulename="HIOS-DOC-MGMT" />
+		<branchdecider org="org.cms.hios.ere" modulename="HIOS-ERE-DATA" />
+		<branchdecider org="org.cms.hios" modulename="HIOS-ESB-BGM" />
+		<branchdecider org="org.cms.hios.global" modulename="HIOS-GLOBAL-DATA" />
+		<branchdecider org="org.cms.hios.xp" modulename="HIOS-IMPORT-EXPORT" />
+		<branchdecider org="org.cms.hios.main" modulename="HIOS-MAIN-UI" />
+		<branchdecider org="org.cms.hios.main" modulename="HIOS-MAIN-DATA" />
+		<branchdecider org="org.cms.hios.mec" modulename="HIOS-MEC-DATA" />
+		<branchdecider org="org.cms.hios.mqm" modulename="HIOS-MQM-DATA" />
+		<branchdecider org="org.cms.hios.mqm" modulename="HIOS-MQM-ESB-BGM" />
+		<branchdecider org="org.cms.hios.nonfed" modulename="HIOS-NONFED-DATA" />
+		<branchdecider org="org.cms.hios.rbis.data" modulename="HIOS-RBIS-DATA" />
+		<branchdecider org="org.cms.rbis" modulename="HIOS-RBIS-ESB-BGM" />
+
+		<branchdecider org="org.cms.hios.internal.ws" modulename="HIOS-INTERNAL-WS" />
+		<branchdecider org="org.cms.hios.internal.ws" modulename="HIOS-INTERNAL-WS-DATA" />
+		
+		<!--10/25/2017 add HIOS-SCIS-WS-DATA-->
+        <branchdecider org="org.cms.hios" modulename="HIOS-SCIS-WS" />
+		<branchdecider org="org.cms.hios" modulename="HIOS-SCIS-WS-DATA" />
+		
+		
+		<ivy:resolve>
+		  <!--<dependency org="org.cms.data" name="DATA-CORE" rev="latest.integration" branch="${DATA-CORE.branch.choice}" conf="data" />-->
+		  <dependency org="org.cms.hios.assister" name="HIOS-ASSISTER-DATA" rev="latest.integration" branch="${HIOS-ASSISTER-DATA.branch.choice}" conf="data" />
+		  <dependency org="org.cms.hios.ccs" name="HIOS-CCS-DATA" rev="latest.integration" branch="${HIOS-CCS-DATA.branch.choice}" conf="data" />
+		  <dependency org="org.cms.hios" name="HIOS-COMMON" rev="latest.integration" branch="${HIOS-COMMON.branch.choice}" conf="data" />
+		  <dependency org="org.cms.hios.ff" name="HIOS-DCM-FF-DATA" rev="latest.integration" branch="${HIOS-DCM-FF-DATA.branch.choice}" conf="data" />
+		  <dependency org="org.cms.hios.dcm.mc" name="HIOS-DCM-MC-DATA" rev="latest.integration" branch="${HIOS-DCM-MC-DATA.branch.choice}" conf="data" />
+		  <dependency org="org.cms.hios.doc.collection" name="HIOS-DOC-COLLECTION-DATA" rev="latest.integration" branch="${HIOS-DOC-COLLECTION-DATA.branch.choice}" conf="data" />
+		  <dependency org="org.cms.hios.doc.mgmt" name="HIOS-DOC-MGMT" rev="latest.integration" branch="${HIOS-DOC-MGMT.branch.choice}" conf="data" />
+		  <dependency org="org.cms.hios.ere" name="HIOS-ERE-DATA" rev="latest.integration" branch="${HIOS-ERE-DATA.branch.choice}" conf="data" />
+		  <dependency org="org.cms.hios" name="HIOS-ESB-BGM" rev="latest.integration" branch="${HIOS-ESB-BGM.branch.choice}" conf="data" />
+		  <dependency org="org.cms.hios.global" name="HIOS-GLOBAL-DATA" rev="latest.integration" branch="${HIOS-GLOBAL-DATA.branch.choice}" conf="data" />
+		  <dependency org="org.cms.hios.xp" name="HIOS-IMPORT-EXPORT" rev="latest.integration" branch="${HIOS-IMPORT-EXPORT.branch.choice}" conf="data" />
+		  <dependency org="org.cms.hios.main" name="HIOS-MAIN-UI" rev="latest.integration" branch="${HIOS-MAIN-UI.branch.choice}" conf="data" />
+		  <dependency org="org.cms.hios.main" name="HIOS-MAIN-DATA" rev="latest.integration" branch="${HIOS-MAIN-DATA.branch.choice}" conf="data" />
+
+		 <dependency org="org.cms.hios.internal.ws" name="HIOS-INTERNAL-WS" rev="latest.integration" branch="${HIOS-INTERNAL-WS.branch.choice}" conf="data"/>
+		 <dependency org="org.cms.hios.internal.ws" name="HIOS-INTERNAL-WS-DATA" rev="latest.integration" branch="${HIOS-INTERNAL-WS-DATA.branch.choice}" conf="data"/>
+		  <dependency org="org.cms.hios.mec" name="HIOS-MEC-DATA" rev="latest.integration" branch="${HIOS-MEC-DATA.branch.choice}" conf="data" />
+		  <dependency org="org.cms.hios.mqm" name="HIOS-MQM-DATA" rev="latest.integration" branch="${HIOS-MQM-DATA.branch.choice}" conf="data" />
+		  <dependency org="org.cms.hios.mqm" name="HIOS-MQM-ESB-BGM" rev="latest.integration" branch="${HIOS-MQM-ESB-BGM.branch.choice}" conf="data" />
+		  <dependency org="org.cms.hios.nonfed" name="HIOS-NONFED-DATA" rev="latest.integration" branch="${HIOS-NONFED-DATA.branch.choice}" conf="data" />
+		  <dependency org="org.cms.hios.rbis.data" name="HIOS-RBIS-DATA" rev="latest.integration" branch="${HIOS-RBIS-DATA.branch.choice}" conf="data" />
+		  <dependency org="org.cms.rbis" name="HIOS-RBIS-ESB-BGM" rev="latest.integration" branch="${HIOS-RBIS-ESB-BGM.branch.choice}" conf="data" />
+		  
+		 <!--10/25/2017 add HIOS-SCIS-WS-DATA-->
+         <dependency org="org.cms.hios" name="HIOS-SCIS-WS" rev="latest.integration" branch="${HIOS-SCIS-WS.branch.choice}" conf="data"/>
+		 <dependency org="org.cms.hios" name="HIOS-SCIS-WS-DATA" rev="latest.integration" branch="${HIOS-SCIS-WS-DATA.branch.choice}" conf="data"/>
+		  
+		</ivy:resolve>
+		
+		
+		<ivy:retrieve pattern="dev-data-dist/[artifact](-[classifier]).[ext]" type="jar,war,esb,zip,tar" />
+		<zip destfile="dev-data-release/dev-data-release.zip" basedir="dev-data-dist" />
+		<scp file="${BUILD_HOME}/${BUILD_GUID}/HIOS-BUILD/dev-data-release/dev-data-release.zip" todir="${cicd.user}@${data.server.ip}:/usr/tmp" keyfile="/home/${tomcat.user}/.ssh/id_rsa"/>
+		<sshexec command="/bin/sh -c ' /usr/bin/unzip -o /usr/tmp/dev-data-release.zip -d /usr/tmp '" host="${data.server.ip}" username="${cicd.user}" keyfile="/home/${tomcat.user}/.ssh/id_rsa" />
+	</target>
+	
+	<target name="stop-jboss-data">
+		<echo message="Stopping JBoss Server HIOS9..." />
+		<sshexec host="${data.server.ip}"
+			username="${jboss.user}"
+			keyfile="${user.home}/.ssh/id_rsa"
+			command="${jboss.bin.dir}/stopHiosDS.sh" 
+			failonerror="false"/>
+	    <echo>+-----------------------------+</echo>
+	    <echo>| J B O S S   S T O P P E D   |</echo>
+		<echo>|    HIOS DS                  |</echo>
+		<echo>+-----------------------------+</echo>
+		
+		<sshexec host="${data.server.ip}"
+			username="${jboss.user}"
+			keyfile="${user.home}/.ssh/id_rsa"
+			command="sleep 45" 
+			failonerror="false"/>
+			
+		<sshexec host="${data.server.ip}"
+			username="${jboss.user}"
+			keyfile="${user.home}/.ssh/id_rsa"
+			command="${jboss.bin.dir}/stopHiosDOCMGT.sh" 
+			failonerror="false"/>
+	    <echo>+-----------------------------+</echo>
+	    <echo>| J B O S S   S T O P P E D   |</echo>
+		<echo>|    HIOS DOCMGT              |</echo>
+		<echo>+-----------------------------+</echo>
+		<sshexec host="${data.server.ip}"
+			username="${jboss.user}"
+			keyfile="${user.home}/.ssh/id_rsa"
+			command="sleep 45" 
+			failonerror="false"/>
+			
+		<sshexec host="${data.server.ip}"
+			username="${jboss.user}"
+			keyfile="${user.home}/.ssh/id_rsa"
+			command="${jboss.bin.dir}/stopHiosBGM.sh" 
+			failonerror="false"/>
+	    <echo>+-----------------------------+</echo>
+	    <echo>| J B O S S   S T O P P E D   |</echo>
+		<echo>|    HIOS BGM                 |</echo>
+		<echo>+-----------------------------+</echo>
+		<sshexec host="${data.server.ip}"
+			username="${jboss.user}"
+			keyfile="${user.home}/.ssh/id_rsa"
+			command="sleep 45" 
+			failonerror="false"/>
+			
+	</target>
+		
+	<target name="deploy-data">
+		<echo message="Deploying to HIOS9 ..." />
+		<echo file="copy-data.sh">
+			# BGM/DEPLOY
+			#cp /usr/tmp/HIOS-MAIN-UI.war ${jboss.dir}/server/bgm/deploy/
+			cp /usr/tmp/HIOS-ESB-BGM.esb ${jboss.dir}/server/bgm/deploy/
+			cp /usr/tmp/HIOS-MQM-ESB-BGM.esb ${jboss.dir}/server/bgm/deploy/
+			cp /usr/tmp/HIOS-RBIS-ESB-BGM.esb ${jboss.dir}/server/bgm/deploy/
+			cp /usr/tmp/HIOS-IMPORT-EXPORT.esb ${jboss.dir}/server/bgm/deploy/
+			
+			# BGM/LIB
+			cp /usr/tmp/HIOS-DOC-MGMT-CLIENT.jar ${jboss.dir}/server/bgm/lib/
+			
+			# DOCMGT/DEPLOY
+			cp /usr/tmp/HIOS-DOC-MGMT.esb ${jboss.dir}/server/docmgt/deploy/
+			
+			# DOCMGT/LIB
+			# N/A
+			
+			# DS/DEPLOY
+			cp /usr/tmp/HIOS-ASSISTER-DATA.esb ${jboss.dir}/server/ds/deploy/
+			cp /usr/tmp/HIOS-CCS-DATA.esb ${jboss.dir}/server/ds/deploy/
+			cp /usr/tmp/HIOS-DCM-FF-DATA.esb ${jboss.dir}/server/ds/deploy/
+			#cp /usr/tmp/HIOS-DCMFFM-DATA.esb ${jboss.dir}/server/ds/deploy/
+			cp /usr/tmp/HIOS-INTERNAL-WS.esb ${jboss.dir}/server/ds/deploy/
+			cp /usr/tmp/HIOS-INTERNAL-WS-DATA.esb ${jboss.dir}/server/ds/deploy/
+			cp /usr/tmp/HIOS-DCM-MC-DATA.esb ${jboss.dir}/server/ds/deploy/
+			cp /usr/tmp/HIOS-DOC-COLLECTION-DATA.esb ${jboss.dir}/server/ds/deploy/
+			cp /usr/tmp/HIOS-ERE-DATA.esb ${jboss.dir}/server/ds/deploy/
+			cp /usr/tmp/HIOS-GLOBAL-DATA.esb ${jboss.dir}/server/ds/deploy/
+			cp /usr/tmp/HIOS-MAIN-DATA.esb ${jboss.dir}/server/ds/deploy/
+			cp /usr/tmp/HIOS-MEC-DATA.esb ${jboss.dir}/server/ds/deploy/
+			cp /usr/tmp/HIOS-MQM-DATA.esb ${jboss.dir}/server/ds/deploy/
+			cp /usr/tmp/HIOS-NONFED-DATA.esb ${jboss.dir}/server/ds/deploy/
+			#cp /usr/tmp/HIOS-PLAN-FINDER-DATA.esb ${jboss.dir}/server/ds/deploy/
+			cp /usr/tmp/HIOS-RBIS-DATA.esb ${jboss.dir}/server/ds/deploy/
+			
+			# DS/LIB
+			#cp /usr/tmp/DATA-CORE.jar ${jboss.dir}/server/ds/lib/
+			cp /usr/tmp/HIOS-COMMON.jar ${jboss.dir}/server/ds/lib/
+		</echo>
+		<scp file="copy-data.sh" todir="${cicd.user}@${data.server.ip}:/usr/tmp/" keyfile="/home/${tomcat.user}/.ssh/id_rsa"/>
+				<sshexec host="${data.server.ip}"
+					username="${cicd.user}"
+					keyfile="/home/${tomcat.user}/.ssh/id_rsa"
+					command="chmod 755 /usr/tmp/copy-data.sh"/>
+				<sshexec host="${data.server.ip}"
+					username="${jboss.user}"
+					keyfile="/home/${tomcat.user}/.ssh/id_rsa"
+					command="/usr/tmp/copy-data.sh"/>
+	</target>
+	
+	<target name="start-jboss-data">
+		<echo message="Starting JBoss Server HIOS9 (TODO)..." />
+		<sshexec host="${data.server.ip}"
+					username="${jboss.user}"
+					keyfile="${user.home}/.ssh/id_rsa"
+					command="nohup ${jboss.bin.dir}/runHiosDS.sh &gt; /dev/null 2&gt; error.log &lt; /dev/null &amp;"/>
+	    <echo>+-----------------------------+</echo>
+	    <echo>| J B O S S   S T A R T E D   |</echo>
+		<echo>|    HIOS DS                  |</echo>
+		<echo>+-----------------------------+</echo>
+		<sshexec host="${data.server.ip}"
+					username="${jboss.user}"
+					keyfile="${user.home}/.ssh/id_rsa"
+					command="nohup ${jboss.bin.dir}/runHiosDocmgt.sh &gt; /dev/null 2&gt; error.log &lt; /dev/null &amp;"/>
+	    <echo>+-----------------------------+</echo>
+	    <echo>| J B O S S   S T A R T E D   |</echo>
+		<echo>|    HIOS DOCMGT              |</echo>
+		<echo>+-----------------------------+</echo>
+		<sshexec host="${data.server.ip}"
+					username="${jboss.user}"
+					keyfile="${user.home}/.ssh/id_rsa"
+					command="nohup ${jboss.bin.dir}/runHiosBGM.sh &gt; /dev/null 2&gt; error.log &lt; /dev/null &amp;"/>
+	    <echo>+-----------------------------+</echo>
+	    <echo>| J B O S S   S T A R T E D   |</echo>
+		<echo>|    HIOS BGM                 |</echo>
+		<echo>+-----------------------------+</echo>
+	</target>
+	
+	<!--
+		================================= 
+	    target: publish-release-artifacts
+	    Publishes or puts the changed release artifacts into the repo
+	-->
+	<target name="publish_release_artifacts">
+		<copy todir="${build.home}/${BUILD_GUID}/" file="run-publish.sh" />
+		<chmod perm="755" file="${build.home}/${BUILD_GUID}/run-publish.sh" />
+		<exec executable="${build.home}/${BUILD_GUID}/run-publish.sh" dir="${build.home}/${BUILD_GUID}/" failonerror="true" />
+	</target>
+	
+	<target name="tag_release">
+		<copy todir="${build.home}/${BUILD_GUID}/" file="run-tagging.sh" />
+		<chmod perm="755" file="${build.home}/${BUILD_GUID}/run-tagging.sh" />
+		<exec executable="${build.home}/${BUILD_GUID}/run-tagging.sh" dir="${build.home}/${BUILD_GUID}/" failonerror="true"/>
+	</target>		
+		
+	<target name="create_release" depends="install-ivy,null_branch,publish_release_artifacts,tag_release,timestamp" >
+		<delete dir="dist" />
+		<delete dir="release" />
+		<mkdir dir="dist" />
+		<mkdir dir="release" />
+		<ivy:configure file="ivysettings_rel.xml" />
+		<echo message="Creating Release" />
+		<ivy:resolve conf="package"/>
+		<ivy:retrieve pattern="dist/[artifact](-[classifier]).[ext]" type="jar,war,esb,zip" conf="package" />
+		<!--<ivy:retrieve pattern="dist/HIOS-FFE-MAIN-UI(-[classifier]).[ext]" type="jar,war,esb,zip" conf="package" />-->
+		<zip destfile="release/release.zip" basedir="dist" />	
+		
+		<echo message="Copying Release candidates to Jenkins workspace" />
+		<mkdir dir="${env.WORKSPACE}/Releases"/>
+		<copy todir="${env.WORKSPACE}/Releases" >
+		  <fileset dir="release/"/>
+		</copy>
+        <rename src="${env.WORKSPACE}/Releases/release.zip" dest="${env.WORKSPACE}/Releases/${touch.time}_${BUILD_GUID}_release.zip"/>
+
+		
+	</target>
+	<target name="null_branch" depends="exit">
+		<property name="branch.name" value="" />
+	</target>
+	<target name="exit" if="branch.name">
+		<fail message="There should be no branch specified. Branch ${branch.name} was specified."/>
+	</target>
+	
+	<target name="timestamp">
+		<tstamp>
+			<format property="touch.time" pattern="yyyyMMdd_HH:mm:ss"/>			
+		</tstamp>
+	</target>
+</project>

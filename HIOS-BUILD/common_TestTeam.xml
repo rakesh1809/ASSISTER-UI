@@ -1,0 +1,601 @@
+<project name="common" xmlns:ivy="antlib:org.apache.ivy.ant" xmlns:sonar="antlib:org.sonar.ant">
+	<loadproperties>
+	<file file="../HIOS-BUILD/build.properties" />
+	</loadproperties>
+	<property environment="env" />
+
+	<!-- Define the SonarQube global properties (the most usual way is to pass these properties via the command line) -->
+	<property name="sonar.host.url" value="http://sonar:9000/sonar/" />
+
+
+	<!-- <property name="sonar.host.url" value="http://10.200.1.15:9000/sonar/" />
+	<property name="sonar.host.url" value="https://hiosdev.sbd2.com/sonar/" />  -->
+
+	<!-- Define the SonarQube project properties -->
+	<property name="sonar.java.source" value="${java.version}" />
+	<property name="sonar.projectKey" value="org.codehaus.sonar:example-java-ant" />
+	<property name="sonar.projectName" value="Simple Java Project analyzed with the SonarQube Ant Task" />
+	<property name="sonar.projectVersion" value="0.1" />
+	<property name="sonar.java.binaries" value="build" />
+	<property name="sonar.java.libraries" value="lib/*.jar" />
+	<!--<property name="sonar.jdbc.url" value="jdbc:mysql://localhost:3306/sonar" /> -->
+	<property name="sonar.jdbc.url" value="jdbc:mysql://10.200.1.15:3306/sonar" />
+	<property name="sonar.jdbc.username" value="sonar" />
+	<property name="sonar.jdbc.password" value="sonar" />
+	<property name="sonar.sources" value="src" />
+	<property name="sonar.sourceEncoding" value="UTF-8"/>
+	<property name="sonar.jar.file" value="sonar-ant-task-2.2.jar" />
+	<property name="sonar.jar.dir" value="${basedir}/../HIOS-BUILD/lib/" />
+	<property name="sonar.jar.url" value="http://central.maven.org/maven2/org/codehaus/sonar-plugins/sonar-ant-task/2.2" />
+    
+	<property name="ivy.install.version" value="2.4.0" />
+	<property name="ivy.jar.dir" value="${basedir}/../HIOS-BUILD/lib" />
+	<property name="ivy.jar.file" value="${ivy.jar.dir}/ivy.jar" />
+
+	<property name="test" value="${basedir}/test" />
+
+	<property name="seleniumTest.testclasses" value="${basedir}/seleniumTest/testclasses" />
+	<property name="seleniumTest.reports" value="${basedir}/seleniumTest/reports" />
+	<property name="seleniumTest.SeleniumTest" value="${basedir}/seleniumTest/SeleniumTest" />
+	<property name="lib-test" value="${basedir}/lib-test"/>
+	<property name="lib-screenshots" value="${basedir}/seleniumTest/screenshots"/>
+	<!--added below -->
+	<property name="lib-downloads" value="${basedir}/seleniumTest/downloads"/>
+	<property name="testcases" value="" />
+	<property name="branch.name" value="dev" /> 
+
+
+	<!--
+	================================= 
+	target: check-ivy         
+	If the ivy jar exists don't redownload. 
+	================================= 
+	-->
+	<target name="check-ivy">
+		<available file="${ivy.jar.file}" property="skip.download" />
+	</target>
+
+	<!--
+	 ================================= 
+	 target: download-ivy         
+     Downloads the ivy jar and places it in the ivy directory
+     ================================= 
+	-->
+	<target name="download-ivy" unless="skip.download" depends="check-ivy">
+
+		<!-- Create a location for the ivy jars -->
+		<mkdir dir="${ivy.jar.dir}" />
+
+		<!-- download Ivy from web site so that it can be used even without any special installation -->
+		<echo message="installing ivy..." />
+		<get src="https://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/ivy-${ivy.install.version}.jar" dest="${ivy.jar.file}" usetimestamp="true" />
+	</target>
+
+	<!--
+	 ================================= 
+	 target: install-ivy         
+     this target is not necessary if you put ivy.jar in your ant lib directory
+     if you already have ivy in your ant lib, you can simply remove this
+     target and the dependency the 'go' target has on it
+     try to load ivy here from local ivy dir, in case the user has not already dropped
+     it into ant's lib dir (note that the latter copy will always take precedence).
+     We will not fail as long as local lib dir exists (it may be empty) and
+     ivy is in at least one of ant's lib dir or the local lib dir
+     ================================= 
+	-->
+	<target name="install-ivy" depends="download-ivy" description="--> install ivy">
+		<path id="ivy.lib.path">
+			<fileset dir="${ivy.jar.dir}" includes="*.jar" />
+		</path>
+		<taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant" classpathref="ivy.lib.path" />
+	</target>
+
+	<!--
+	================================= 
+	target: check-sonar        
+	If the ivy jar exists don't redownload. 
+	================================= 
+	-->
+	<target name="check-sonar">
+		<available file="${sonar.jar.dir}/${sonar.jar.file}" property="skip.download.sonar" />
+	</target>
+
+	<!--
+	 ================================= 
+	 target: download-ivy         
+     Downloads the ivy jar and places it in the ivy directory
+     ================================= 
+	-->
+	<target name="download-sonar" unless="skip.download.sonar" depends="check-sonar">
+
+		<!-- Create a location for the ivy jars -->
+		<mkdir dir="${ivy.jar.dir}" />
+
+		<!-- download Ivy from web site so that it can be used even without any special installation -->
+		<echo message="installing sonar..." />
+		<mkdir dir="${sonar.jar.dir}" />
+		<get src="${sonar.jar.url}/${sonar.jar.file}" dest="${sonar.jar.dir}/${sonar.jar.file}" usetimestamp="true" />
+	</target>
+
+	<!-- Define the SonarQube target -->
+	<target name="sonar" depends="install-ivy,download-sonar,compile">
+		<taskdef uri="antlib:org.sonar.ant" resource="org/sonar/ant/antlib.xml">
+			<!-- Update the following line, or put the "sonarqube-ant-task-*.jar" file in your "$HOME/.ant/lib" folder -->
+			<classpath path="${sonar.jar.dir}/${sonar.jar.file}" />
+		</taskdef>
+
+		<!-- Execute the SonarQube analysis -->
+		<sonar:sonar />
+	</target>
+
+	<!--
+		here comes the magic line: asks ivy to resolve a dependency on 
+		commons-lang 2.1 and to build an ant path with it from its cache  
+	-->
+	<target name="deps" depends="install-ivy" description="--> resolve dependencies, and put them in ./lib">
+		<ivy:resolve />
+		<ivy:retrieve pattern="${lib}/[artifact](-[classifier]).[ext]" />
+		<echo message="pulling deps..." />
+		<mkdir dir="${build}" />
+	</target>
+
+	<!--
+	================================= 
+    target: release-integration
+    Upload the jar created as a release. The version number is determined by the version in releases
+    plus 1 and the current snapshot build number plus one. If there are no snapshots  at that version the build number is 0.               
+	================================= 
+	-->
+	<target name="release-integration" depends="dist,install-ivy,svn-branch">
+		<!-- Find the latest release version -->
+		<ivy:resolve />
+		<ivy:buildnumber organisation="${ivy.organisation}" module="${ivy.module}" resolver="buildnum-releases" revision="${version.number}." default="${version.number}.0.0.0" />
+		<!-- Find the latest integration build number for this version series -->
+		<ivy:buildnumber organisation="${ivy.organisation}" module="${ivy.module}" resolver="buildnum-integration-releases" prefix="ivyint" revision="${version.number}.${ivy.new.build.number}." default="${version.number}.${ivy.new.build.number}.1.0" branch="${branch.name}" />
+		<!-- Find the latest snapshot build number for this version series -->
+		<ivy:buildnumber organisation="${ivy.organisation}" module="${ivy.module}" resolver="buildnum-snapshots" prefix="ivysnap" revision="${version.number}.${ivy.new.build.number}.${ivyint.new.build.number}." default="${version.number}.${ivy.new.build.number}.${ivyint.new.build.number}.0" branch="${branch.name}" />
+		<echo>Making a release for ${ivyint.new.revision}.${ivysnap.new.build.number} in branch ${branch.name}</echo>
+		<!-- rename the jar appropriatly -->
+		<copy todir="${dist}" includeemptydirs="false" verbose="true">
+			<fileset dir="${dist}" />
+			<mapper type="regexp" from="${ivy.module}(-CLIENT)?(-SERVER-CONFIG)?(.*)" to="${ivy.module}\1\2-${ivysnap.new.revision}\3" />
+		</copy>
+		<!-- set the delivery patter -->
+		<ivy:deliver deliverpattern="${dist}/ivy.xml" pubrevision="${ivyint.new.revision}.${ivysnap.new.build.number}" status="integration" />
+		<!-- create pom file for ant to upload -->
+		<ivy:makepom ivyfile="${dist}/ivy.xml" pomfile="${dist}/${ivy.module}-${ivyint.new.revision}.${ivysnap.new.build.number}.pom" />
+		<!-- set the artifact version and resolve libs -->
+		<ivy:resolve revision="${ivyint.new.revision}.${ivysnap.new.build.number}" />
+		<!-- push to nexus -->
+		<ivy:publish resolver="nexus-integration-releases" organisation="${ivy.organisation}" revision="${ivyint.new.revision}.${ivysnap.new.build.number}" overwrite="true" publishivy="true" pubbranch="${branch.name}">
+			<artifacts pattern="${dist}/[artifact]-[revision].[ext]" />
+		</ivy:publish>
+		<delete>
+			<fileset dir="dist">
+				<include name="*${ivyint.new.revision}.${ivysnap.new.build.number}*" />
+			</fileset>
+		</delete>
+	</target>
+
+
+
+	<!--
+	================================= 
+    target: release
+    Upload the jar created as a snapshot. The version number is determined by the version in releases
+    plus 1 and the current snapshot build number plus one. If there are no snapshots  at that version the build number is 0.               
+	================================= 
+	-->
+	<target name="release" depends="dist,install-ivy,svn-branch">
+		<!-- Find the latest release version -->
+		<ivy:resolve />
+		<ivy:buildnumber organisation="${ivy.organisation}" module="${ivy.module}" resolver="buildnum-releases" revision="${version.number}." default="${version.number}.0.0.0" />
+		<!-- Find the latest integration build number for this version series -->
+		<ivy:buildnumber organisation="${ivy.organisation}" module="${ivy.module}" resolver="buildnum-integration-releases" prefix="ivyint" revision="${version.number}.${ivy.new.build.number}." default="${version.number}.${ivy.new.build.number}.1.0" branch="${branch.name}" />
+		<!-- Find the latest snapshot build number for this version series -->
+		<ivy:buildnumber organisation="${ivy.organisation}" module="${ivy.module}" resolver="buildnum-snapshots" prefix="ivysnap" revision="${version.number}.${ivy.new.build.number}.${ivyint.new.build.number}." default="${version.number}.${ivy.new.build.number}.${ivyint.new.build.number}.0" branch="${branch.name}" />
+		<echo>
+			Making a release for ${ivy.module}-${ivy.new.revision}.${ivyint.new.build.number}.${ivysnap.new.build.number}
+		</echo>
+		<!-- rename the jar appropriatly -->
+		<copy todir="${dist}" includeemptydirs="false" verbose="true">
+			<fileset dir="${dist}" />
+			<mapper type="regexp" from="${ivy.module}(-CLIENT)?(-SERVER-CONFIG)?(.*)" to="${ivy.module}\1\2-${ivysnap.new.revision}\3" />
+		</copy>
+		<!-- set the delivery patter -->
+		<ivy:deliver deliverpattern="${dist}/ivy.xml" pubrevision="${ivy.new.revision}.${ivyint.new.build.number}.${ivysnap.new.build.number}" status="integration" />
+		<!-- create pom file for ant to upload -->
+		<ivy:makepom ivyfile="${dist}/ivy.xml" pomfile="${dist}/${ivy.module}-${ivy.new.revision}.${ivyint.new.build.number}.${ivysnap.new.build.number}.pom" />
+		<!-- set the artifact version and resolve libs -->
+		<ivy:resolve revision="${ivy.new.revision}.${ivyint.new.build.number}.${ivysnap.new.build.number}" />
+		<!-- push to nexus -->
+		<ivy:publish resolver="nexus-releases" revision="${ivy.new.revision}.${ivyint.new.build.number}.${ivysnap.new.build.number}" overwrite="true" publishivy="true">
+			<artifacts pattern="${dist}/[artifact]-[revision].[ext]" />
+		</ivy:publish>
+		<delete>
+			<fileset dir="dist">
+				<include name="*${ivy.new.revision}.${ivyint.new.build.number}.${ivysnap.new.build.number}*" />
+			</fileset>
+		</delete>
+	</target>
+
+	<!--
+	================================= 
+    target: snapshot
+    Upload the jar created as a snapshot. The version number is determined by the version in releases
+    plus 1 and the current snapshot build number plus one. If there are no snapshots  at that version the build number is 0.               
+	================================= 
+	-->
+	<target name="snapshot" depends="dist,svn-branch">
+		<!-- Find the latest release version -->
+		<ivy:resolve />
+		<ivy:buildnumber organisation="${ivy.organisation}" module="${ivy.module}" resolver="buildnum-releases" revision="${version.number}." default="${version.number}.0.0.0" />
+		<!-- Find the latest integration build number for this version series -->
+		<ivy:buildnumber organisation="${ivy.organisation}" module="${ivy.module}" resolver="buildnum-integration-releases" prefix="ivyint" revision="${version.number}.${ivy.new.build.number}." default="${version.number}.${ivy.new.build.number}.1.0" branch="${branch.name}" />
+		<!-- Find the latest snapshot build number for this version series -->
+		<ivy:buildnumber organisation="${ivy.organisation}" module="${ivy.module}" resolver="buildnum-snapshots" prefix="ivysnap" revision="${version.number}.${ivy.new.build.number}.${ivyint.new.build.number}." default="${version.number}.${ivy.new.build.number}.${ivyint.new.build.number}.0" branch="${branch.name}" />
+		<echo>
+			Creating ${ivysnap.new.revision}-SNAPSHOT for branch ${branch.name}
+		</echo>
+		<!-- Find the latest snapshot build number for this version series -->
+		<copy todir="${dist}" includeemptydirs="false" verbose="true">
+			<fileset dir="${dist}" />
+			<mapper type="regexp" from="${ivy.module}(-CLIENT)?(-SERVER-CONFIG)?(.*)" to="${ivy.module}\1\2-${ivysnap.new.revision}-SNAPSHOT\3" />
+		</copy>
+		<!-- Set the ivy delivery options -->
+		<ivy:deliver deliverpattern="${dist}/ivy.xml" pubrevision="${ivysnap.new.revision}-SNAPSHOT" status="integration" />
+		<!-- make the pom file so ivy can publish it to nexus -->
+		<ivy:makepom ivyfile="${dist}/ivy.xml" pomfile="${dist}/${ivy.module}-${ivysnap.new.revision}-SNAPSHOT.pom" />
+		<!-- resolve dunamically sets the version -->
+		<ivy:resolve revision="${ivysnap.new.revision}-SNAPSHOT" />
+		<!-- This publishes to the snapshot repo at the calculated version -->
+		<ivy:publish resolver="snapshot-local" revision="${ivysnap.new.revision}-SNAPSHOT" overwrite="true" publishivy="true" pubbranch="${branch.name}">
+			<artifacts pattern="${dist}/[artifact]-[revision].[ext]" />
+		</ivy:publish>
+		<delete>
+			<fileset dir="dist">
+				<include name="*${ivysnap.new.revision}-SNAPSHOT*" />
+			</fileset>
+		</delete>
+	</target>
+
+	<!--
+		================================= 
+	    target: test
+	    This is used for debugging               
+		================================= 
+	-->
+	<target name="test-ivy" depends="svn-branch">
+		<ivy:resolve />
+		<ivy:buildnumber organisation="${ivy.organisation}" module="${ivy.module}" resolver="buildnum-releases" revision="${version.number}." default="${version.number}.0.0.0" />
+		<echo>
+				${ivy.new.revision} :: ${ivy.organisation} :: ${ivy.module} :: ${ivy.revision} :: ${ivy.build.number} :: ${ivy.new.build.number} :: I want ${ivy.new.revision}.0.0
+		</echo>
+		<ivy:buildnumber organisation="${ivy.organisation}" module="${ivy.module}" resolver="buildnum-integration-releases" prefix="ivyint" revision="${version.number}.${ivy.new.build.number}." default="${version.number}.${ivy.new.build.number}.0.0" branch="${branch.name}" />
+		<echo>
+		  	 	${ivyint.new.revision} :: ${ivy.organisation} :: ${ivy.module} :: ${ivyint.revision} :: ${ivyint.build.number} :: ${ivyint.new.build.number} :: I woule make ${ivyint.new.revision}.0 for branch ${branch.name}
+		</echo>
+		<ivy:buildnumber organisation="${ivy.organisation}" module="${ivy.module}" resolver="buildnum-snapshots" prefix="ivysnap" revision="${version.number}.${ivy.new.build.number}.${ivyint.new.build.number}." default="${version.number}.${ivy.new.build.number}.${ivyint.new.build.number}.0" branch="${branch.name}" />
+		<echo>
+		  	 	${ivysnap.new.revision} :: ${ivysnap.organisation} :: ${ivysnap.module} :: ${ivysnap.revision} :: ${ivysnap.build.number} :: ${ivysnap.new.build.number} :: I woule make ${ivysnap.new.revision}-SNAPSHOT for branch ${branch.name}
+		</echo>
+		<echo>The next release would be: ${ivy.new.revision}.${ivyint.new.build.number}.${ivysnap.new.build.number} </echo>
+		<echo>The next int would be: ${ivyint.new.revision}.${ivysnap.new.build.number} </echo>
+		<echo>The next snap would be: ${ivysnap.new.revision}-SNAPSHOT </echo>
+	</target>
+	
+	<!--
+	================================= 
+    target: svn branch
+    This is used to determine the current branch               
+	================================= 
+	-->
+	<target name="svn-branch" description="This gets the current branch">
+		<!--
+		<exec executable="svn" outputproperty="branch.name">
+			<arg value="info" />
+			<redirector>
+				<outputfilterchain>
+					<tokenfilter>
+						<containsregex pattern="^URL:.*/(.*$)" replace="\1" />
+					</tokenfilter>
+				</outputfilterchain>
+			</redirector>
+		</exec> -->
+	</target>
+
+	<target name="clean">
+		<delete dir="${build}" includeEmptyDirs="true" failonerror="false" />
+		<delete dir="${dist}" includeEmptyDirs="true" failonerror="false" />
+		<delete dir="${lib}" includeEmptyDirs="true" failonerror="false" />
+		<delete dir="${build-client}" includeEmptyDirs="true" failonerror="false" />
+		<delete dir="${lib-test}" includeEmptyDirs="true" failonerror="false" />
+		<delete dir="${lib-screenshots}" includeEmptyDirs="true" failonerror="false" />
+		<delete dir="${basedir}/reports" includeEmptyDirs="true" failonerror="false" />
+	</target>
+
+	<target name="init" depends="clean">
+		<mkdir dir="${dist}" />
+		<mkdir dir="${build.meta-inf}" />
+		<mkdir dir="${build}" />
+		<mkdir dir="${test}" />
+		<!--	<mkdir dir="${lib-test}" />
+		<mkdir dir="${lib-screenshots}" /> -->
+	</target>
+
+	<target name="compile" depends="init,deps">
+		<!-- Compile the java code from ${src} into ${build} -->
+		<javac debug="true" includeantruntime="false" srcdir="${src}" destdir="${build}">
+			<classpath>
+				<path refid="project.lib.classpath" />
+			</classpath>
+		</javac>
+	</target>
+
+	<target name="compile-test" depends="compile">
+		<javac debug="true" srcdir="${basedir}/test" destdir="${build}" includeantruntime="false" includes="**/*.java">
+			<classpath>
+				<path refid="project.lib.classpath" />
+				<path path="${basedir}/test" />
+			</classpath>
+		</javac>
+	</target>
+	
+	<target name="compile-client" depends="init,deps">
+		<!-- Compile the java code from ${src} into ${build} -->
+		<javac debug="true" includeantruntime="false" srcdir="${src}" destdir="${build-client}">
+			<classpath>
+				<path refid="project.lib.classpath" />
+			</classpath>
+			<include name="**/client/**/*.java" />
+			<include name="**/transfer/**/*.java" />
+			<include name="**/exception/*.java" />
+		</javac>
+	</target>
+
+	<target name="test" depends="compile-test">
+		<mkdir dir="${basedir}/reports" />
+		<echo message="BASE DIR = ${basedir}"/>
+		<junit printsummary="yes" haltonfailure="no" showoutput="yes">
+			<classpath refid="project.test.classpath" />
+			<formatter type="xml" />
+			<formatter type="plain" />
+			<batchtest fork="yes" todir="${basedir}/reports">
+				<fileset dir="${basedir}/test">
+					<include name="**/*Test.java" />
+					<include name="**/Test*.java" />
+				</fileset>
+			</batchtest>
+		</junit>
+	</target>
+
+	<target name="copyUICommon">
+		<mkdir dir="${basedir}/tmpuntar" />
+		<untar src="${lib}/HIOS-COMMON-UI.tar" dest="${basedir}/tmpuntar" />
+		<copy todir="${basedir}/WebContent/config/common" overwrite="true"><fileset dir="${basedir}/tmpuntar/config"  includes="**" excludes="tiles*.xml, app*.xml"/></copy>
+		<copy todir="${basedir}/WebContent/WEB-INF/common" overwrite="true"><fileset dir="${basedir}/tmpuntar/config" includes="**" /></copy>
+		<copy todir="${basedir}/WebContent/css/common" overwrite="true"><fileset dir="${basedir}/tmpuntar/css" includes="**" /></copy>
+		<copy todir="${basedir}/WebContent/scripts" overwrite="true"><fileset dir="${basedir}/tmpuntar/scripts" includes="**"/></copy>
+		<copy todir="${basedir}/WebContent/sessionTimeout" overwrite="true"><fileset dir="${basedir}/tmpuntar/sessionTimeout" includes="**"/></copy>
+		<copy todir="${basedir}/WebContent/images" overwrite="true"><fileset dir="${basedir}/tmpuntar/images" includes="**"/></copy>
+		<copy todir="${basedir}/WebContent/jsp/common" overwrite="true"><fileset dir="${basedir}/tmpuntar/jsp" includes="**"/></copy>
+		<copy todir="${basedir}/WebContent/WEB-INF" overwrite="true"><fileset dir="${basedir}/tmpuntar/tld" includes="**"/></copy>
+		<delete dir="${basedir}/tmpuntar" />
+		<delete file="${lib}/HIOS-COMMON-UI.tar" />
+	</target>
+	
+	<scriptdef name="branchlogic" language="javascript">
+		<attribute name="modulename" />
+		<![CDATA[
+			var branch = project.getProperty('branch.name');
+			var rel_version = project.getProperty('ivydec.revision');
+			var int_version = project.getProperty('ivyintdec.revision');
+			var snap_version = project.getProperty('ivysnapdec.revision');
+			var modulename = attributes.get("modulename");
+			var re = new RegExp( /^0*/);
+			var intSnap;
+			var intInt;
+			var intRel;
+			
+			if (snap_version == null)
+			{
+				snap_version="0.0.0.0-SNAPSHOT"
+			}
+			if (int_version == null)
+			{
+				int_version="0.0.0.0"
+			}
+			if (rel_version == null)
+			{
+				rel_version="0.0.0.0"
+			}
+			
+			snap_version=snap_version.replace("-SNAPSHOT","");
+			snap_version=snap_version.replace(".","");
+			intSnap=parseInt((snap_version + "").replace(  re , ""));
+			
+			int_version=int_version.replace(".","");
+			intInt=parseInt((int_version + "").replace(  re , ""));
+			
+			rel_version=rel_version.replace(".","");
+			intRel=parseInt((rel_version + "").replace(  re , ""));
+
+			var test=modulename+".branch.choice";
+			if(intSnap > intRel || intInt > intRel)
+			{
+				project.setProperty(test, branch );
+			}
+			else
+			{
+				project.setProperty(test, "" );
+			}
+		]]>		
+	</scriptdef>
+	
+	<scriptdef name="initbranchdecider" language="javascript">
+		<![CDATA[
+			project.setProperty('ivydec.revision', "0.0.0.0" );
+			project.setProperty('ivyintdec.revision', "0.0.0.0" );
+			project.setProperty('ivysnapdec.revision', "0.0.0.0-SNAPSHOT" );
+		]]>
+	</scriptdef>
+	
+	<macrodef name="branchdecider">
+		<attribute name="modulename" />
+		<attribute name="org" />
+		<sequential>
+			<initbranchdecider />
+			<echo>test:: @{org} :: @{modulename} :: ${branch.name}</echo>
+			<ivy:buildnumber organisation="@{org}" module="@{modulename}" revision="0+" resolver="buildnum-releases" prefix="ivydec" default="0.0.0.0" />
+			<ivy:buildnumber organisation="@{org}" module="@{modulename}" revision="0+" resolver="buildnum-integration-releases" prefix="ivyintdec" default="0.0.0.0" branch="${branch.name}" />
+			<ivy:buildnumber organisation="@{org}" module="@{modulename}" revision="0+" resolver="buildnum-snapshots" prefix="ivysnapdec" default="0.0.0.0-SNAPSHOT" branch="${branch.name}" />
+			<echo message=" Branch decider logs ---> @{org} @{modulename} ${ivydec.revision} ${ivyintdec.revision} ${ivysnapdec.revision}" />
+			<branchlogic modulename="@{modulename}" />
+		</sequential>
+	</macrodef>
+	
+	<target name="external-deps">
+		<ivy:resolve />
+		<ivy:retrieve pattern="lib/[artifact](-[classifier]).[ext]" type="tar,jar"/>
+	</target>
+	
+	<target name="getdeps" depends="install-ivy,svn-branch">
+		<branchdecider org="org.cms.hios" modulename="HIOS-COMMON-UI" />
+		<branchdecider org="org.cms.hios" modulename="HIOS-COMMON" />
+		<echo>Choice UI: ${HIOS-COMMON-UI.branch.choice}</echo>
+		<echo>Choice: ${HIOS-COMMON.branch.choice}</echo>
+		<ivy:resolve>
+			<dependency org="org.cms.hios" name="HIOS-COMMON-UI" rev="latest.integration" branch="${HIOS-COMMON-UI.branch.choice}" conf="default" />
+			<dependency org="org.cms.hios" name="HIOS-COMMON" rev="latest.integration" branch="${HIOS-COMMON.branch.choice}" conf="default" />
+		</ivy:resolve>
+		<ivy:retrieve pattern="lib/[artifact](-[classifier]).[ext]" type="tar,jar" />
+	</target>
+
+	<target name="test-reports">
+		<dependency org="org.jacoco" name="org.jacoco.ant" rev="0.7.2.201409121644" />
+		<taskdef uri="antlib:org.jacoco.ant" resource="org/jacoco/ant/antlib.xml"  classpathref="build.path"/>
+		<jacoco:report xmlns:jacoco="antlib:org.jacoco.ant">
+			<executiondata>
+				<file file="${build.dir}/jacoco.exec" />
+			</executiondata>
+			<structure name="JaCoCo Ant Example">
+				<classfiles>
+					<fileset dir="${sonar.binaries}" />
+				</classfiles>
+				<sourcefiles encoding="UTF-8">
+					<fileset dir="${sonar.junit.reportsPath}" />
+				</sourcefiles>
+			</structure>
+			<html destdir="${sonar.junit.reportsPath}" />
+		</jacoco:report>
+	</target>
+
+	<target name="copyLib">
+		<mkdir dir="${basedir}/provided-libs" />
+		<copy todir="${basedir}/provided-libs">
+			<fileset dir="${basedir}/lib" />
+		</copy>
+	    
+		<delete includeemptydirs="true">
+			<fileset dir="${basedir}/lib" includes="**/*"/>
+		</delete>
+	</target>
+
+	<!--START OF CHANGES-->
+	<target name="cleanSelenium">
+		<delete dir="${seleniumTest.testclasses}" includeEmptyDirs="true" failonerror="false" />
+		<delete dir="${seleniumTest.reports}" includeEmptyDirs="true" failonerror="false" />
+	 	<delete dir="${lib-screenshots}" includeEmptyDirs="true" failonerror="false" />
+	 	<delete dir="${lib-downloads}" includeEmptyDirs="true" failonerror="false" />
+	</target>
+
+	<target name="compileSelenium" depends="cleanSelenium">
+		<mkdir dir="${seleniumTest.testclasses}"/>
+		<mkdir dir="${seleniumTest.reports}"/>
+		<mkdir dir="${lib-screenshots}" />
+		<mkdir dir="${lib-downloads}" />
+		<javac srcdir="${seleniumTest.SeleniumTest}" destdir="${seleniumTest.testclasses}" classpathref="project.test.classpath"/>
+	</target>
+	<!--END OF CHANGES-->
+
+	<target name="jarSelenium">
+		<jar destfile="${lib-test}/SeleniumTest.jar" basedir="${seleniumTest.testclasses}">
+			<manifest>
+				<attribute name="Main-Class" value="SeleniumTest.MainTest"/>
+			</manifest>
+		</jar>
+	</target>
+	
+	<target name="unittest" depends="snapshot,test">
+	</target>
+	
+	<!--START OF CHANGES-->
+	<target name="runSelenium" depends="init, deps, compileSelenium, jarSelenium" >
+		<junit printsummary="yes" haltonfailure="no" showoutput="yes">
+			<classpath>
+				<path refid="project.test.classpath"/>
+				<path location="${lib-test}/SeleniumTest.jar"/>
+			</classpath>
+
+			<sysproperty key="prop1" value="${ant.project.name}"/>
+			<sysproperty key="prop2" value="${build.home}/${build.guid}"/>
+			
+			<formatter type="xml" />
+			<formatter type="plain" />
+			<batchtest fork="yes" todir="${seleniumTest.reports}">
+				<fileset dir="${basedir}/seleniumTest">
+			<!--	<include name="**/SeleniumTest.java" />-->
+					<include name="**/${testcases}" /> 
+				</fileset>
+			</batchtest>
+		</junit>
+
+		<echo message="Selenium Test is complete for ${ant.project.name}"/>
+<!--END OF CHANGES-->
+
+		<junitreport todir="${seleniumTest.reports}">
+			<fileset dir="${seleniumTest.reports}" includes="TEST-*.xml"/>
+			<report todir="${seleniumTest.reports}"/>
+		</junitreport>
+		<!-- commented out in order to run locally
+		<echo message="Copying screenshot to Jenkins workspace" />
+		<mkdir dir="${env.WORKSPACE}/Selenium_screenshots"/>
+		<echo message="${env.WORKSPACE}/Selenium_screenshots" />
+		<copy todir="${env.WORKSPACE}/Selenium_screenshots">
+			<fileset dir="${BUILD_HOME}/${BUILD_GUID}/${ant.project.name}/seleniumTest/screenshots/">
+				<include name="**/*.png"/>
+			</fileset>
+		</copy>-->
+	</target>
+
+	<!--adding in new target for Selenium to kick off without building	-->
+	<target name="runSeleniumNoBuild" depends="compileSelenium, jarSelenium" >
+		<junit printsummary="yes" haltonfailure="no" showoutput="yes">
+		<classpath>
+			<path refid="project.test.classpath"/>
+			<path location="${lib-test}/SeleniumTest.jar"/>
+		</classpath>
+
+		<sysproperty key="prop1" value="${ant.project.name}"/>
+	    <sysproperty key="prop2" value="${build.home}/${build.guid}"/>
+				
+		<formatter type="xml" />
+		<formatter type="plain" />
+		<batchtest fork="yes" todir="${seleniumTest.reports}">
+		<fileset dir="${basedir}/seleniumTest">
+		<!--	<include name="**/SeleniumTest.java" />-->
+		<include name="**/${testcases}" /> 
+		</fileset>
+		</batchtest>
+		</junit>
+
+	<echo message="Selenium Test is complete for ${ant.project.name}"/>
+
+
+		<junitreport todir="${seleniumTest.reports}">
+			<fileset dir="${seleniumTest.reports}" includes="TEST-*.xml"/>
+			<report todir="${seleniumTest.reports}"/>
+		</junitreport>
+	</target>
+<!--END OF CHANGES FOR NEW TARGET--> 
+</project>

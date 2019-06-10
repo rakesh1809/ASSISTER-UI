@@ -1,0 +1,70 @@
+<ivy-module version="2.3">
+    <info organisation="org.cms" module="release" />
+    <configurations>
+		<conf name="package" visibility="public" />
+		<conf name="default" visibility="public" />
+		<conf name="ui" visibility="public" />
+		<conf name="data" visibility="public" />
+	</configurations>
+	<publications>
+        <artifact name="release" type="pom" ext="pom" conf="default,package,ui,data" />
+        <artifact name="release" type="zip" ext="zip" conf="default,package,ui,data" />
+    </publications>
+    <dependencies>
+			<!--<dependency org="org.cms.data" name="DATA-CORE" rev="latest.integration" branch="${branch.name}" conf="ui->ui;data->data;default->default;package->package" />-->
+			<dependency org="org.cms.hios.pe.api" name="HIOS-API" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" />
+			<dependency org="org.cms.hios.pe.api" name="HIOS-API-DATA" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" />
+			<dependency org="org.cms.hios.assister" name="HIOS-ASSISTER-DATA" rev="latest.integration" branch="${branch.name}" conf="data->data;package->package;default->default" />
+			<dependency org="org.cms.hios.assister" name="HIOS-ASSISTER-UI" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" />
+			<dependency org="org.cms.hios.ccs" name="HIOS-CCS-DATA" rev="latest.integration" branch="${branch.name}" conf="data->data;package->package;default->default" />
+			<dependency org="org.cms.hios.ccs" name="HIOS-CCS-UI" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" />
+			<dependency org="org.cms.hios" name="HIOS-COMMON" rev="latest.integration" branch="${branch.name}" conf="ui->ui;data->data;default->default;package->package" />
+			<dependency org="org.cms.hios" name="HIOS-COMMON-UI" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" />
+			<dependency org="org.cms.hios.ff" name="HIOS-DCM-FF-DATA" rev="latest.integration" branch="${branch.name}" conf="data->data;package->package;default->default" />
+			<dependency org="org.cms.hios.ff" name="HIOS-DCM-FF-UI" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" />
+			<dependency org="org.cms.hios.dcm.mc" name="HIOS-DCM-MC-DATA" rev="latest.integration" branch="${branch.name}" conf="data->data;package->package;default->default" />
+			<dependency org="org.cms.hios.dcm.mc" name="HIOS-DCM-MC-UI" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" />
+			<dependency org="org.cms.hios.doc.mgmt" name="HIOS-DOC-MGMT" rev="latest.integration" branch="${branch.name}" conf="ui->ui;data->data;package->package;default->default" />
+			<dependency org="org.cms.hios.ere" name="HIOS-ERE-DATA" rev="latest.integration" branch="${branch.name}" conf="data->data;package->package;default->default" />
+			<dependency org="org.cms.hios.ere" name="HIOS-ERE-UI" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" /> 
+			<dependency org="org.cms.hios" name="HIOS-ESB-BGM" rev="latest.integration" branch="${branch.name}" conf="data->data;package->package;default->default" />
+			<!--<dependency org="org.cms.hios.ffe" name="HIOS-FFE-MAIN-UI" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" />-->
+			<dependency org="org.cms.hios.global" name="HIOS-GLOBAL-DATA" rev="latest.integration" branch="${branch.name}" conf="ui->ui;data->data;package->package;default->default" />
+			<dependency org="org.cms.hios" name="HIOS-HPOES-WS" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" />
+			<dependency org="org.cms.hios" name="HIOS-HPID-WS-DATA" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" />
+			<dependency org="org.cms.hios.xp" name="HIOS-IMPORT-EXPORT" rev="latest.integration" branch="${branch.name}" conf="data->data;package->package;default->default" />
+			<dependency org="org.cms.hios.internal.ws" name="HIOS-INTERNAL-WS" rev="latest.integration" branch="${branch.name}" conf="ui->ui;data->data;default->default;package->package" />
+			<dependency org="org.cms.hios.internal.ws" name="HIOS-INTERNAL-WS-DATA" rev="latest.integration" branch="${branch.name}" conf="ui->ui;data->data;default->default;package->package" />
+			<dependency org="org.cms.hios.main" name="HIOS-MAIN-UI" rev="latest.integration" branch="${branch.name}" conf="ui->ui;data->data;package->package;default->default" />
+			<dependency org="org.cms.hios.main" name="HIOS-MAIN-DATA" rev="latest.integration" branch="${branch.name}" conf="data->data;package->package;default->default" />
+			<dependency org="org.cms.hios.mec" name="HIOS-MEC-DATA" rev="latest.integration" branch="${branch.name}" conf="data->data;package->package;default->default" />
+		<dependency org="org.cms.hios.mec" name="HIOS-MEC-UI" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" />
+			<dependency org="org.cms.hios.mqm" name="HIOS-MQM-DATA" rev="latest.integration" branch="${branch.name}" conf="data->data;package->package;default->default" />
+			<dependency org="org.cms.hios.mqm" name="HIOS-MQM-UI" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" />
+			<dependency org="org.cms.hios.mqm" name="HIOS-MQM-ESB-BGM" rev="latest.integration" branch="${branch.name}" conf="data->data;package->package;default->default" />
+			<dependency org="org.cms.hios.nonfed" name="HIOS-NONFED-DATA" rev="latest.integration" branch="${branch.name}" conf="data->data;package->package;default->default" />
+			<dependency org="org.cms.hios" name="HIOS-NONFED-UI" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" />
+			<dependency org="org.cms.hios.pe.aob" name="HIOS-PE-DATA-COMMON" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" />
+			<dependency org="org.cms.hios.rbis.data" name="HIOS-RBIS-DATA" rev="latest.integration" branch="${branch.name}" conf="data->data;package->package;default->default" />
+			<dependency org="org.cms.rbis" name="HIOS-RBIS-ESB-BGM" rev="latest.integration" branch="${branch.name}" conf="data->data;package->package;default->default" />
+			<dependency org="org.cms.hios.rbis.pe" name="HIOS-RBIS-PE" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" />
+			<dependency org="org.cms.hios.rbis.pe.data" name="HIOS-RBIS-PE-DATA" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" />
+			<dependency org="org.cms.rbis" name="HIOS-RBIS-UI" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" /> 
+			<dependency org="org.cms.hios" name="HIOS-NONFED-UI" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" />
+			<dependency org="org.cms.hios.main" name="HIOS-MAIN-DATA" rev="latest.integration" branch="${branch.name}" conf="data->data;package->package;default->default" />
+			<dependency org="org.cms.hios" name="HIOS-COMMON-UI" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" />
+			<dependency org="org.cms.hios" name="HIOS-NONFED-UI" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" />
+			<dependency org="org.cms.hios.doc.collection" name="HIOS-DOC-COLLECTION-DATA" rev="latest.integration" branch="${branch.name}" conf="data->data;package->package;default->default" />
+			<dependency org="org.cms.hios.doc.collection" name="HIOS-DOC-COLLECTION-UI" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" />
+			<dependency org="org.cms.hios.portal.data" name="HIOS-PORTAL-DATA" rev="latest.integration" branch="${branch.name}" conf="data->data;package->package;default->default" />
+			<dependency org="org.cms.hios.portal" name="HIOS-PORTAL" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" />
+			
+			
+			<dependency org="org.cms.hios" name="HIOS-SCIS-WS-DATA" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" />
+
+			<!--<dependency org="org.cms.hios.scis" name="HIOSSCIS" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" />-->
+			<!--<dependency org="org.cms.hios.scis" name="HIOSSCIS-DATA" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" />-->
+			<!--<dependency org="org.cms.hios.scis" name="HIOSSCIS-PROXY" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" />-->
+			<!--<dependency org="org.cms.hios.scis" name="HIOSSCIS-COMMON" rev="latest.integration" branch="${branch.name}" conf="ui->ui;package->package;default->default" />	-->
+		</dependencies>
+</ivy-module>
